@@ -40,8 +40,10 @@ public final class Webi {
             actions.put(getMethodURI(m), m);
         }
     }
-    public void start() {
-        server.setHandler(server);
+    public void start() throws Exception {
+        server.setHandler(new RequestHandler());
+        server.start();
+        server.join();
     }
     
     private Mapping getMapping(String type) {
@@ -70,7 +72,7 @@ public final class Webi {
     private Method getMethodByURI(String uri) {
         int firstSep = uri.indexOf("/");
         if (firstSep > 1) {
-            String name = uri.substring(firstSep);
+            String name = uri.substring(firstSep+1);
             return actions.get(name.toLowerCase());
         }
         return null;
@@ -82,20 +84,37 @@ public final class Webi {
                             HttpServletRequest request, 
                             HttpServletResponse response)
                             throws IOException, ServletException {
-            String path = request.getPathTranslated();
+            
+            
+            String path = target.isEmpty() ? "" : target.substring(1);
             Map<String, String[]> parms = request.getParameterMap();
+            Object result = null;
+            if (path != null)
+                result = invokeAction(path, parms);
             
-            
-            
-            String requestType = request.getHeader("Content-type");
-            
+            if (result == null) {
+                response.setStatus(404);
+                response.setHeader("Content-type","text/plain");
+                response.getWriter().println("No method was registered that the given url");
+                response.flushBuffer();
+            } else {
+                Mapping mapper = getResponseMapping(request);
+                byte[] output = mapper.serialize(result);
+                response.setHeader("Content-type", mapper.getMimeType());
+                response.getOutputStream().write(output);
+            }
+            response.flushBuffer();
         }
         
         public Object invokeAction(final String path,final Map<String, String[]> parms) {
             try {
-                Object objectByURI = getObjectByURI(path);
-                Method methodByUri = getMethodByURI(path);
-                return methodByUri.invoke(objectByURI);
+                Object obj = getObjectByURI(path);
+                if (obj == null)
+                    return null;
+                Method method = getMethodByURI(path);
+                if (method == null)
+                    return null;
+                return method.invoke(obj);
             } catch (Throwable ex) {
                 Logger.getLogger(Webi.class.getName()).
                         log(Level.SEVERE, null, ex);
@@ -103,12 +122,11 @@ public final class Webi {
             return null;
         }
         
-        private Mapping getResponseMapping(String url) {
-            int lastDot = url.lastIndexOf(".");
-            if (lastDot < 1)
+        private Mapping getResponseMapping(HttpServletRequest request) {
+            String format = request.getParameter("format");
+            if (format == null)
                 return mappings.get(0);
-            String ext = url.substring(lastDot);
-            return getMapping(ext);
+            return getMapping(format);
         }
         
     }
