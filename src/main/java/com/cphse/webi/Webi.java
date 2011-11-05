@@ -83,7 +83,7 @@ public final class Webi {
                             Request baseRequest, 
                             HttpServletRequest request, 
                             HttpServletResponse response)
-                            throws IOException, ServletException {
+                                throws IOException, ServletException {
             
             
             String path = target.isEmpty() ? "" : target.substring(1);
@@ -95,8 +95,7 @@ public final class Webi {
             if (result == null) {
                 response.setStatus(404);
                 response.setHeader("Content-type","text/plain");
-                response.getWriter().println("No method was registered that the given url");
-                response.flushBuffer();
+                response.getWriter().println("No method was registered with the given url");
             } else {
                 Mapping mapper = getResponseMapping(request);
                 byte[] output = mapper.serialize(result);
@@ -106,7 +105,7 @@ public final class Webi {
             response.flushBuffer();
         }
         
-        public Object invokeAction(final String path,final Map<String, String[]> parms) {
+        private Object invokeAction(final String path,final Map<String, String[]> parms) {
             try {
                 Object obj = getObjectByURI(path);
                 if (obj == null)
