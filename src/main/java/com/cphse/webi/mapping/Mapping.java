@@ -10,4 +10,6 @@ public interface Mapping {
     
     public boolean supportsType(String mimeType);
     
+    public String getMimeType();
+    
 }

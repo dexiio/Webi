@@ -32,5 +32,9 @@ public class JSONMapper implements Mapping {
     public boolean supportsType(String mimeType) {
         return mimeType.contains("json");
     }
+
+    public String getMimeType() {
+        return "application/json";
+    }
     
 }

@@ -16,4 +16,9 @@ public class XMLMapping implements Mapping {
     public boolean supportsType(String mimeType) {
         return mimeType.contains("xml");
     }
+
+    public String getMimeType() {
+        return "text/xml";
+    }
+    
 }
