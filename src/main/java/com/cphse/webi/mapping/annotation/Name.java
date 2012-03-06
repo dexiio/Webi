@@ -16,7 +16,12 @@ import java.lang.annotation.Target;
 @Target(value={ElementType.METHOD, ElementType.TYPE, ElementType.PARAMETER, ElementType.FIELD})
 @Retention(value=RetentionPolicy.RUNTIME)
 public @interface Name {
-    String value();
+    String value() default "";
     String description() default "";
     boolean required() default false;
+    Type type() default Type.AUTO;
+    
+    public static enum Type {
+        AUTO,PATH,PARAMETER,BODY
+    }
 }

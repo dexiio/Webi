@@ -1,5 +1,6 @@
 package com.cphse.webi.mapping.annotation;
 
+import com.cphse.webi.mapping.HttpMethod;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -16,4 +17,5 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Path {
     String value();
+    HttpMethod[] methods() default {HttpMethod.GET};
 }

@@ -3,6 +3,7 @@ package com.cphse.webi;
 import com.cphse.webi.mapping.JSONMapper;
 import com.cphse.webi.mapping.Mapping;
 import com.cphse.webi.mapping.XMLMapping;
+import com.cphse.webi.mapping.annotation.Path;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -55,10 +56,17 @@ public final class Webi {
     }
     
     private String getMethodURI(Method m) {
+        Path path = m.getAnnotation(Path.class);
+        if (path != null)
+            return path.value();
         return m.getName().toLowerCase();
     }
     
     private String getObjectURI(Object obj) {
+        Class<? extends Object> clz = obj.getClass();
+        Path path = clz.getAnnotation(Path.class);
+        if (path != null) 
+            return path.value();
         return obj.getClass().getSimpleName().toLowerCase();
     }
     
