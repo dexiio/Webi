@@ -15,9 +15,11 @@ import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.nio.SelectChannelConnector;
 
 public final class Webi {
     private final Server server;
@@ -28,6 +30,11 @@ public final class Webi {
 
     public Webi(int port) {
         server = new Server(port);
+        final SelectChannelConnector connector = new SelectChannelConnector();
+        connector.setAcceptors(100);
+        connector.setResponseBufferSize(0);
+        connector.setAcceptQueueSize(5000);
+        server.setConnectors(new Connector[]{connector});
         mappings.add(new JSONMapper());
         mappings.add(new XMLMapping());
     }
@@ -93,7 +100,6 @@ public final class Webi {
                             HttpServletResponse response)
                                 throws IOException, ServletException {
             
-            
             String path = target.isEmpty() ? "" : target.substring(1);
             Map<String, String[]> parms = request.getParameterMap();
             Object result = null;
@@ -104,11 +110,13 @@ public final class Webi {
                 response.setStatus(404);
                 response.setHeader("Content-type","text/plain");
                 response.getWriter().println("No method was registered with the given url");
+                System.out.println("No method was registered with the given url:"+path);
             } else {
                 Mapping mapper = getResponseMapping(request);
                 byte[] output = mapper.serialize(result);
                 response.setHeader("Content-type", mapper.getMimeType());
                 response.getOutputStream().write(output);
+                System.out.println(mapper.getMimeType());
             }
             response.flushBuffer();
         }

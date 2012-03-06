@@ -85,7 +85,10 @@ public class ObjectInspector {
     }
     private Method getGetter(Object obj,Field field) {
         try {
-            return obj.getClass().getMethod("get"+field.getName());
+            if (field.getType().isAssignableFrom(Boolean.class))
+                return obj.getClass().getMethod("is"+field.getName());
+            else    
+                return obj.getClass().getMethod("get"+field.getName());
         } catch (NoSuchMethodException ex) {
             Logger.getLogger(ObjectInspector.class.getName()).
                     log(Level.SEVERE, null, ex);
