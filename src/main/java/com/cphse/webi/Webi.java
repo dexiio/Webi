@@ -1,14 +1,12 @@
 package com.cphse.webi;
 
-import com.cphse.webi.mapping.JSONMapper;
-import com.cphse.webi.mapping.Mapping;
-import com.cphse.webi.mapping.XMLMapping;
 import com.cphse.webi.mapping.annotation.Path;
+import com.vonhof.babelshark.BabelShark;
+import com.vonhof.babelshark.Output;
+import com.vonhof.babelshark.exception.MappingException;
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -25,9 +23,7 @@ public final class Webi {
     private final Server server;
     private final Map<String,Object> controllers = new HashMap<String,Object>();
     private final Map<String,Method> actions = new HashMap<String,Method>();
-    private final List<Mapping> mappings = new ArrayList<Mapping>();
     
-
     public Webi(int port) {
         server = new Server(port);
         final SelectChannelConnector connector = new SelectChannelConnector();
@@ -35,8 +31,6 @@ public final class Webi {
         connector.setResponseBufferSize(0);
         connector.setAcceptQueueSize(5000);
         server.setConnectors(new Connector[]{connector});
-        mappings.add(new JSONMapper());
-        mappings.add(new XMLMapping());
     }
     
     public void expose(Object obj) {
@@ -54,13 +48,6 @@ public final class Webi {
         server.join();
     }
     
-    private Mapping getMapping(String type) {
-        for(Mapping m:mappings) {
-            if (m.supportsType(type))
-                return m;
-        }
-        return mappings.get(0);
-    }
     
     private String getMethodURI(Method m) {
         Path path = m.getAnnotation(Path.class);
@@ -112,11 +99,13 @@ public final class Webi {
                 response.getWriter().println("No method was registered with the given url");
                 System.out.println("No method was registered with the given url:"+path);
             } else {
-                Mapping mapper = getResponseMapping(request);
-                byte[] output = mapper.serialize(result);
-                response.setHeader("Content-type", mapper.getMimeType());
-                response.getOutputStream().write(output);
-                System.out.println(mapper.getMimeType());
+                String type = getResponseType(request);
+                response.setHeader("Content-type", BabelShark.getInstance().getMimeType(type));
+                try {
+                    BabelShark.getInstance().write(new Output(response.getOutputStream(),type), result);
+                } catch (MappingException ex) {
+                    throw new IOException(ex);
+                }
             }
             response.flushBuffer();
         }
@@ -137,11 +126,11 @@ public final class Webi {
             return null;
         }
         
-        private Mapping getResponseMapping(HttpServletRequest request) {
+        private String getResponseType(HttpServletRequest request) {
             String format = request.getParameter("format");
             if (format == null)
-                return mappings.get(0);
-            return getMapping(format);
+                BabelShark.getInstance().getDefaultType();
+            return format;
         }
         
     }

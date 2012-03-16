@@ -27,14 +27,9 @@
       <version>8.0.0.M2</version>
     </dependency>
     <dependency>
-      <groupId>org.codehaus.jackson</groupId>
-      <artifactId>jackson-xc</artifactId>
-      <version>1.9.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.thoughtworks.xstream</groupId>
-      <artifactId>xstream</artifactId>
-      <version>1.4.1</version>
+      <groupId>vonhof</groupId>
+      <artifactId>babelshark</artifactId>
+      <version>1.0-SNAPSHOT</version>
     </dependency>
   </dependencies>
 </project>

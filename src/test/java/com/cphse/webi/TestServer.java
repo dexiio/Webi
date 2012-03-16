@@ -1,6 +1,5 @@
 package com.cphse.webi;
 
-import com.cphse.webi.mapping.HttpMethod;
 import com.cphse.webi.mapping.annotation.Name;
 import com.cphse.webi.mapping.annotation.Path;
 import java.util.logging.Level;
