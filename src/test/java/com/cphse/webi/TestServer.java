@@ -2,11 +2,15 @@ package com.cphse.webi;
 
 import com.cphse.webi.mapping.annotation.Name;
 import com.cphse.webi.mapping.annotation.Path;
+import com.vonhof.babelshark.BabelShark;
+import com.vonhof.babelshark.language.JsonLanguage;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class TestServer {
     public static void main(String[] args) throws Exception {
+        BabelShark.getInstance().register(new JsonLanguage());
+        
         Webi webi = new Webi(8910);
         webi.expose(new HalloService());
         webi.start();
