@@ -1,7 +1,9 @@
-package com.cphse.webi;
+package com.vonhof.webi;
 
-import com.cphse.webi.mapping.annotation.Name;
-import com.cphse.webi.mapping.annotation.Path;
+import com.vonhof.webi.HttpMethod;
+import com.vonhof.webi.Webi;
+import com.vonhof.webi.annotation.Parm;
+import com.vonhof.webi.annotation.Path;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
 import java.util.logging.Level;
@@ -38,7 +40,7 @@ public class TestServer {
             return "world";
         }
         
-        public String parms(@Name("text") String input,@Name() String other) {
+        public String parms(@Parm("text") String input,@Parm() String other) {
             return "hello "+input;
         }
     }

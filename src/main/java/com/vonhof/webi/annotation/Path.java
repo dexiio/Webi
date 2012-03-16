@@ -1,6 +1,6 @@
-package com.cphse.webi.mapping.annotation;
+package com.vonhof.webi.annotation;
 
-import com.cphse.webi.HttpMethod;
+import com.vonhof.webi.HttpMethod;
 import java.lang.annotation.*;
 
 /**

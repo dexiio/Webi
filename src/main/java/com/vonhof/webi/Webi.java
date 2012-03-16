@@ -1,9 +1,9 @@
-package com.cphse.webi;
+package com.vonhof.webi;
 
-import com.cphse.webi.mapping.annotation.Path;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.Output;
 import com.vonhof.babelshark.exception.MappingException;
+import com.vonhof.webi.annotation.Path;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -18,6 +18,12 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+
+
+/**
+ * 
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
 
 public final class Webi {
     private final Server server;
