@@ -1,0 +1,5 @@
+Simple jetty wrapper that mimics some of springs niceties when it comes to exposing classes as REST webservices.
+
+To get a quick preview of how to use Webi - click below:
+
+https://github.com/hofmeister/Webi/blob/master/src/test/java/com/vonhof/webi/WebiServer.java
