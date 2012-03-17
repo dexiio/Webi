@@ -1,11 +1,11 @@
 package com.vonhof.webi;
 
-import com.vonhof.webi.HttpMethod;
-import com.vonhof.webi.Webi;
-import com.vonhof.webi.annotation.Parm;
-import com.vonhof.webi.annotation.Path;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
+import com.vonhof.webi.annotation.Body;
+import com.vonhof.webi.annotation.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,8 +30,17 @@ public class TestServer {
             return "world";
         }
         
-        @Path(value="world",methods={HttpMethod.POST})
-        public String worldPOST() {
+        public Map<String,Object> map() {
+            Map<String,Object> out = new HashMap<String, Object>();
+            out.put("id", 1);
+            out.put("name", "The Dude");
+            out.put("age", 43);
+            out.put("alive", true);
+            return out;
+        }
+        
+        @Path(value="world",method=HttpMethod.POST)
+        public String worldPOST(@Body Map<String,Object> body) {
             try {
                 Thread.sleep(2000);
             } catch (InterruptedException ex) {
@@ -40,8 +49,8 @@ public class TestServer {
             return "world";
         }
         
-        public String parms(@Parm("text") String input,@Parm() String other) {
-            return "hello "+input;
+        public String parms(String text,String other) {
+            return "hello "+ text + " other: "+ other;
         }
     }
 }

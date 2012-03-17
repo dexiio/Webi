@@ -13,5 +13,5 @@ import java.lang.annotation.*;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Path {
     String value();
-    HttpMethod[] methods() default {HttpMethod.GET};
+    HttpMethod method() default HttpMethod.GET;
 }

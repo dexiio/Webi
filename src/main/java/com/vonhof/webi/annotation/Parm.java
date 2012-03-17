@@ -13,6 +13,7 @@ import java.lang.annotation.*;
 @Retention(value=RetentionPolicy.RUNTIME)
 public @interface Parm {
     String value() default "";
+    String[] defaultValue() default {""};
     String description() default "";
     boolean required() default false;
     Type type() default Type.AUTO;
