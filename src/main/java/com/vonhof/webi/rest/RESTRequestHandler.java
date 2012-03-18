@@ -11,8 +11,6 @@ import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.WebiContext.GETMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
-import com.vonhof.webi.rest.DefaultUrlMapper;
-import com.vonhof.webi.rest.UrlMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -66,6 +64,12 @@ public class RESTRequestHandler implements RequestHandler {
         }
     }
 
+    /**
+     * Invoke action based on path and http method
+     * @param req
+     * @return
+     * @throws HttpException 
+     */
     private Object invokeAction(WebiContext req) throws HttpException {
         String path = req.getPath();
         if (!path.isEmpty())
@@ -80,8 +84,8 @@ public class RESTRequestHandler implements RequestHandler {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
 
-            final List<Parameter> methodParms = fromMethod(method);
-            final Object[] callParms = mapRequestToMethod(req,methodParms);
+            final List<Parameter> methodParms = getMethodParameters(method);
+            final Object[] callParms = getMethodArguments(req,methodParms);
             
             Object output = method.invoke(obj, callParms);
             return refineValue(output,method.getReturnType());
@@ -91,7 +95,10 @@ public class RESTRequestHandler implements RequestHandler {
             throw new HttpException(HttpException.INTERNAL_ERROR, ex);
         }
     }
-    
+    /**
+     * Set response type from webi context
+     * @param ctxt 
+     */
     private void setResponseType(WebiContext ctxt) {
         String format = ctxt.GET().get("format");
         if (format == null) {
@@ -101,7 +108,14 @@ public class RESTRequestHandler implements RequestHandler {
         ctxt.setResponseType(bs.getMimeType(format));
     }
 
-    private Object[] mapRequestToMethod(WebiContext req,final List<Parameter> methodParms) throws Exception {
+    /**
+     * Get arguments array for calling the specified controller action
+     * @param req
+     * @param methodParms
+     * @return
+     * @throws Exception 
+     */
+    private Object[] getMethodArguments(WebiContext req,final List<Parameter> methodParms) throws Exception {
         final GETMap GET = req.GET();
         final Object[] invokeArgs = new Object[methodParms.size()];
         
@@ -165,7 +179,12 @@ public class RESTRequestHandler implements RequestHandler {
         }
         return invokeArgs;
     }
-    
+    /**
+     * Refine output value
+     * @param value
+     * @param type
+     * @return 
+     */
     private Object refineValue(Object value,Class type) {
         if (value != null) 
             return value;
@@ -183,6 +202,11 @@ public class RESTRequestHandler implements RequestHandler {
         return value;
     }
     
+    /**
+     * Determine if parameter value is missing
+     * @param value
+     * @return 
+     */
     private boolean isMissing(Object value) {
         boolean missing = value == null;
         if (!missing && value instanceof String) {
@@ -203,10 +227,25 @@ public class RESTRequestHandler implements RequestHandler {
         return missing;
     }
     
+    /**
+     * Read body from request. Converts the raw string to a value instance 
+     * using content type
+     * @param req
+     * @param p
+     * @return
+     * @throws Exception 
+     */
     private Object readBODYParm(WebiContext req,Parameter p) throws Exception {
         return bs.read(new Input(req.getInputStream(), req.getRequestType()), p.getType());
     }
 
+    /**
+     * Read GET parameter into method parameter
+     * @param p
+     * @param values
+     * @return
+     * @throws Exception 
+     */
     private Object readGETParm(Parameter p, String[] values) throws Exception {
         if (values != null && values.length > 0) {
             if (ReflectUtils.isCollection(p.getType())) {
@@ -231,7 +270,12 @@ public class RESTRequestHandler implements RequestHandler {
         return null;
     }
 
-    private List<Parameter> fromMethod(Method m) {
+    /**
+     * Get method parameters
+     * @param m
+     * @return 
+     */
+    private List<Parameter> getMethodParameters(Method m) {
         String[] parmNames = paranamer.lookupParameterNames(m, false);
 
         Class<?>[] parmTypes = m.getParameterTypes();
@@ -245,6 +289,10 @@ public class RESTRequestHandler implements RequestHandler {
         return out;
     }
 
+    /**
+     * Internal representaion of a method parameter
+     * Used in the mapping from HTTP to Method
+     */
     private static final class Parameter {
 
         private final String name;
