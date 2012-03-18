@@ -4,7 +4,8 @@ import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Path;
-import com.vonhof.webi.annotation.Secured;
+import com.vonhof.webi.requesthandler.FileRequestHandler;
+import com.vonhof.webi.requesthandler.RESTRequestHandler;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -17,8 +18,20 @@ public class WebiServer {
         //Tell webi to bind to port 8081 - it wont start listening until you call start();
         Webi webi = new Webi(8081);
         
+        //Init ther REST request handler
+        RESTRequestHandler restHandler = new RESTRequestHandler();
+        
         //Expose the hallo service. You can expose services both before and after you've started webi.
-        webi.expose(new HalloService());
+        restHandler.expose(new HalloService());
+        
+        //Add the REST handler to /rest/
+        webi.add("/rest/", restHandler);
+        
+        FileRequestHandler fileHandler = FileRequestHandler.getStandardFileHandler();
+        fileHandler.setDocumentRoot(System.getProperty("user.home"));
+        webi.add("/", fileHandler);
+        
+        
         
         //Start the webi webserver
         webi.start();
@@ -29,7 +42,7 @@ public class WebiServer {
      * The @Path annotation applies to types and methods
      */
     @Path("hallo")
-    private static class HalloService {
+    public static class HalloService {
         
         /**
          * Handle a GET request to /hallo/world/
@@ -77,9 +90,5 @@ public class WebiServer {
             return "hello "+ text + " other: "+ other;
         }
         
-        @Secured
-        public String secured() {
-            return "world";
-        }
     }
 }

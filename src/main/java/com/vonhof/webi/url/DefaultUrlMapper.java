@@ -66,7 +66,11 @@ public class DefaultUrlMapper implements UrlMapper {
         int firstSep = url.indexOf("/");
         if (firstSep > 1) {
             String name = url.substring(firstSep + 1);
-            return actions.get(name.toLowerCase()).get(method);
+            if (name.endsWith("/"))
+                name = name.substring(0,name.length()-1);
+            EnumMap<HttpMethod, Method> methods = actions.get(name.toLowerCase());
+            if (methods != null)
+                return methods.get(method);
         }
         return null;
     }

@@ -1,14 +1,17 @@
-package com.vonhof.webi;
+package com.vonhof.webi.requesthandler;
 
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
-import com.vonhof.babelshark.BabelShark;
-import com.vonhof.babelshark.ConvertUtils;
-import com.vonhof.babelshark.Input;
-import com.vonhof.babelshark.ReflectUtils;
+import com.vonhof.babelshark.*;
 import com.vonhof.babelshark.annotation.Ignore;
+import com.vonhof.babelshark.exception.MappingException;
+import com.vonhof.webi.HttpException;
+import com.vonhof.webi.RequestHandler;
+import com.vonhof.webi.WebiContext;
+import com.vonhof.webi.WebiContext.GETMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
+import com.vonhof.webi.url.DefaultUrlMapper;
 import com.vonhof.webi.url.UrlMapper;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,44 +20,52 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.handler.AbstractHandler;
 
-/**
- *
- * @author Henrik Hofmeister <@vonhofdk>
- */
-public class WebiRequestHandler extends AbstractHandler {
-
+public class RESTRequestHandler implements RequestHandler {
+    
     private final Paranamer paranamer = new AdaptiveParanamer();
     private final UrlMapper urlMapper;
     private final BabelShark bs = BabelShark.getInstance();
 
-    public WebiRequestHandler(UrlMapper urlMapper) {
+    public RESTRequestHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
     }
     
-    public void handle(String target,
-                    Request baseRequest,
-                    HttpServletRequest request,
-                    HttpServletResponse response)
-                    throws IOException, ServletException {
-        handle(new WebiRequest(target, request, response));
+    public RESTRequestHandler() {
+        this(new DefaultUrlMapper());
     }
-
-    public void handle(WebiRequest req) throws IOException, ServletException {
+    public void expose(Object obj) {
+        urlMapper.expose(obj);
+    };
+    public void expose(Object obj, String baseUrl) {
+        urlMapper.expose(obj, baseUrl);
+    }
+    
+    public void handle(WebiContext ctxt) throws IOException, ServletException {
         try {
-            Object output = invokeAction(req);
-            req.respond(output);
+            
+            setResponseType(ctxt);
+            
+            //Invoke REST method
+            Object output = invokeAction(ctxt);
+            
+            ctxt.setHeader("Content-type", ctxt.getResponseType());
+            final Output out = new Output(ctxt.getOutputStream(),ctxt.getResponseType());
+            try {
+                bs.write(out,output);
+            } catch (MappingException ex) {
+                throw new IOException(ex);
+            }
+            ctxt.flushBuffer();
         } catch (Throwable ex) {
-            req.sendError(ex);
+            ctxt.sendError(ex);
         }
     }
 
-    public Object invokeAction(WebiRequest req) throws HttpException {
-        final String path = req.getPath();
+    private Object invokeAction(WebiContext req) throws HttpException {
+        String path = req.getPath();
+        if (!path.isEmpty())
+            path = path.substring(1);
         try {
             Object obj = urlMapper.getObjectByURL(path);
             if (obj == null) {
@@ -72,13 +83,22 @@ public class WebiRequestHandler extends AbstractHandler {
             return refineValue(output,method.getReturnType());
         } catch (HttpException ex) {
             throw ex;
-        } catch (Throwable ex) {
-            throw new HttpException(HttpException.INTERNAL_ERROR, "Server error");
+        } catch (Exception ex) {
+            throw new HttpException(HttpException.INTERNAL_ERROR, ex);
         }
     }
+    
+    private void setResponseType(WebiContext ctxt) {
+        String format = ctxt.GET().get("format");
+        if (format == null) {
+            format = bs.getDefaultType();
+        }
+        //Set response type
+        ctxt.setResponseType(bs.getMimeType(format));
+    }
 
-    private Object[] mapRequestToMethod(WebiRequest req,final List<Parameter> methodParms) throws Exception {
-        final Map<String, String[]> GET = req.getGETParms();
+    private Object[] mapRequestToMethod(WebiContext req,final List<Parameter> methodParms) throws Exception {
+        final GETMap GET = req.GET();
         final Object[] invokeArgs = new Object[methodParms.size()];
         
         if (!methodParms.isEmpty()) {
@@ -97,7 +117,7 @@ public class WebiRequestHandler extends AbstractHandler {
                     case PATH:
                         break;
                     case HEADER:
-                        String headerValue = req.getRequest().getHeader(name);
+                        String headerValue = req.getHeader(name);
                         if (ReflectUtils.isPrimitive(p.getType())) {
                             value = ConvertUtils.convert(headerValue, p.getType());
                         } else {
@@ -109,28 +129,20 @@ public class WebiRequestHandler extends AbstractHandler {
                             value = readBODYParm(req,p);
                             break;
                         }
-                        if (HttpServletRequest.class.isAssignableFrom(p.getType())) {
-                            value = req.getRequest();
-                            break;
-                        }
-                        if (HttpServletResponse.class.isAssignableFrom(p.getType())) {
-                            value = req.getResponse();
-                            break;
-                        }
                         if (InputStream.class.isAssignableFrom(p.getType())) {
-                            value = req.getBodyStream();
+                            value = req.getInputStream();
                             break;
                         }
                         if (OutputStream.class.isAssignableFrom(p.getType())) {
-                            value = req.getResponse().getOutputStream();
+                            value = req.getOutputStream();
                             break;
                         }
-                        if (WebiRequest.class.isAssignableFrom(p.getType())) {
+                        if (WebiContext.class.isAssignableFrom(p.getType())) {
                             value = req;
                             break;
                         }
                         
-                        String[] values = GET.get(name);
+                        String[] values = GET.getAll(name);
                         if (values == null) {
                             values = p.getDefaultValue();
                         }
@@ -187,8 +199,8 @@ public class WebiRequestHandler extends AbstractHandler {
         return missing;
     }
     
-    private Object readBODYParm(WebiRequest req,Parameter p) throws Exception {
-        return bs.read(new Input(req.getBodyStream(), req.getContentType()), p.getType());
+    private Object readBODYParm(WebiContext req,Parameter p) throws Exception {
+        return bs.read(new Input(req.getInputStream(), req.getRequestType()), p.getType());
     }
 
     private Object readGETParm(Parameter p, String[] values) throws Exception {
@@ -285,4 +297,5 @@ public class WebiRequestHandler extends AbstractHandler {
             return parmAnno != null ? parmAnno.required() : false;
         }
     }
+
 }

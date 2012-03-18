@@ -7,6 +7,11 @@ public class HttpException extends Exception {
     
     private final int code;
 
+    public HttpException(int code, Throwable thrwbl) {
+        super(thrwbl);
+        this.code = code;
+    }
+
     public HttpException(int code, String message) {
         super(message);
         this.code = code;
