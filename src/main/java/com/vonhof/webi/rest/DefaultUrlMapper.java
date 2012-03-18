@@ -1,4 +1,4 @@
-package com.vonhof.webi.url;
+package com.vonhof.webi.rest;
 
 import com.vonhof.webi.HttpMethod;
 import com.vonhof.webi.annotation.Path;
@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- *
+ * Default implementation of the url mapper
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class DefaultUrlMapper implements UrlMapper {

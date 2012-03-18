@@ -1,4 +1,4 @@
-package com.vonhof.webi.requesthandler;
+package com.vonhof.webi;
 
 import com.vonhof.webi.HttpException;
 import com.vonhof.webi.RequestHandler;
@@ -10,6 +10,10 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.ServletException;
 
+/**
+ * File request handler. Servers local static file resources.
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
 public class FileRequestHandler implements RequestHandler {
     
     private final Map<String,String> mimeTypes = new HashMap<String, String>();

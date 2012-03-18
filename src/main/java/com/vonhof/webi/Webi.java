@@ -11,7 +11,7 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 
 /**
- *
+ * Main Webi method
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public final class Webi {

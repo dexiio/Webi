@@ -1,7 +1,7 @@
 package com.vonhof.webi;
 
 /**
- *
+ * Filter interface - used to manipulate the WebiContext
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public interface Filter {

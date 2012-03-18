@@ -6,7 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-public class PathPatternMap<T>  {
+/**
+ * Collection of path patterns
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
+class PathPatternMap<T>  {
     private final Map<PathPattern,T> inner = new LinkedHashMap<PathPattern, T>();
     
     public void put(String path,T value) {

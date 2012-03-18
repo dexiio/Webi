@@ -1,4 +1,4 @@
-package com.vonhof.webi.requesthandler;
+package com.vonhof.webi.rest;
 
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
@@ -11,8 +11,8 @@ import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.WebiContext.GETMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
-import com.vonhof.webi.url.DefaultUrlMapper;
-import com.vonhof.webi.url.UrlMapper;
+import com.vonhof.webi.rest.DefaultUrlMapper;
+import com.vonhof.webi.rest.UrlMapper;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,6 +21,10 @@ import java.lang.reflect.Method;
 import java.util.*;
 import javax.servlet.ServletException;
 
+/**
+ * REST web service request handling
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
 public class RESTRequestHandler implements RequestHandler {
     
     private final Paranamer paranamer = new AdaptiveParanamer();

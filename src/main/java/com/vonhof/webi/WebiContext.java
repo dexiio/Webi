@@ -3,11 +3,14 @@ package com.vonhof.webi;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.StringWriter;
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * Webi context wraps request, response and paths.
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
 public final class WebiContext {
     private final String path;
     private final HttpServletRequest request;

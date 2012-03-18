@@ -1,6 +1,10 @@
 package com.vonhof.webi;
 
-public class PathPattern {
+/**
+ * Path patterns are used to identify paths
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
+class PathPattern {
     private final String ptrn;
 
     public PathPattern(String expression) {

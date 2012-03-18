@@ -1,10 +1,10 @@
-package com.vonhof.webi.url;
+package com.vonhof.webi.rest;
 
 import com.vonhof.webi.HttpMethod;
 import java.lang.reflect.Method;
 
 /**
- *
+ * Url mappers are used to control the REST web service handler
  * @author Henrik Hofmeister <hh@cphse.com>
  */
 public interface UrlMapper {

@@ -1,5 +1,9 @@
 package com.vonhof.webi;
 
+/**
+ * Indicate to webi that an HTTP error occurred. Sets message and http status code
+ * @author Henrik Hofmeister <@vonhofdk>
+ */
 public class HttpException extends Exception {
     public static int CLIENT = 400;
     public static int NOT_FOUND = 404;
