@@ -4,7 +4,6 @@ import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Path;
-import com.vonhof.webi.FileRequestHandler;
 import com.vonhof.webi.rest.RESTRequestHandler;
 import java.util.HashMap;
 import java.util.Map;
