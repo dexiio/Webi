@@ -4,12 +4,12 @@ package com.vonhof.webi.annotation;
 import java.lang.annotation.*;
 
 /**
- * Use this name in mapping instead of the actual name
+ * Extended information regarding method parameters.
  * @author Henrik Hofmeister <@vonhofdk>
  */
 
 @Documented
-@Target(value={ElementType.METHOD, ElementType.TYPE, ElementType.PARAMETER, ElementType.FIELD})
+@Target(value={ElementType.PARAMETER})
 @Retention(value=RetentionPolicy.RUNTIME)
 public @interface Parm {
     String value() default "";
@@ -19,6 +19,6 @@ public @interface Parm {
     Type type() default Type.AUTO;
     
     public static enum Type {
-        AUTO,PATH,PARAMETER,BODY
+        AUTO,PATH,PARAMETER,HEADER,BODY
     }
 }

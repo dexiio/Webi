@@ -4,6 +4,7 @@ import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Path;
+import com.vonhof.webi.annotation.Secured;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -74,6 +75,11 @@ public class WebiServer {
          */
         public String parms(String text,String other) {
             return "hello "+ text + " other: "+ other;
+        }
+        
+        @Secured
+        public String secured() {
+            return "world";
         }
     }
 }

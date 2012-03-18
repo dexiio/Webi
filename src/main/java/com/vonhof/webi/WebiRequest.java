@@ -11,14 +11,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import quicktime.util.StringHandle;
 
-public class WebRequest {
+public class WebiRequest {
     private static final BabelShark bs = BabelShark.getInstance();
     private final String path;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
 
-    public WebRequest(String path, HttpServletRequest request, HttpServletResponse response) {
+    public WebiRequest(String path, HttpServletRequest request, HttpServletResponse response) {
         this.path = path.isEmpty() ? "" : path.substring(1);;
         this.request = request;
         this.response = response;

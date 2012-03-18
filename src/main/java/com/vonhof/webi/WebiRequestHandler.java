@@ -11,6 +11,8 @@ import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.url.UrlMapper;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -39,10 +41,10 @@ public class WebiRequestHandler extends AbstractHandler {
                     HttpServletRequest request,
                     HttpServletResponse response)
                     throws IOException, ServletException {
-        handle(new WebRequest(target, request, response));
+        handle(new WebiRequest(target, request, response));
     }
 
-    public void handle(WebRequest req) throws IOException, ServletException {
+    public void handle(WebiRequest req) throws IOException, ServletException {
         try {
             Object output = invokeAction(req);
             req.respond(output);
@@ -51,7 +53,7 @@ public class WebiRequestHandler extends AbstractHandler {
         }
     }
 
-    private Object invokeAction(WebRequest req) throws HttpException {
+    public Object invokeAction(WebiRequest req) throws HttpException {
         final String path = req.getPath();
         try {
             Object obj = urlMapper.getObjectByURL(path);
@@ -75,17 +77,15 @@ public class WebiRequestHandler extends AbstractHandler {
         }
     }
 
-    
-
-    private Object[] mapRequestToMethod(WebRequest req,final List<Parameter> methodParms) throws Exception {
+    private Object[] mapRequestToMethod(WebiRequest req,final List<Parameter> methodParms) throws Exception {
         final Map<String, String[]> GET = req.getGETParms();
-        final Object[] callParms = new Object[methodParms.size()];
+        final Object[] invokeArgs = new Object[methodParms.size()];
         
         if (!methodParms.isEmpty()) {
 
             parmLoop:
             for (int i = 0; i < methodParms.size(); i++) {
-                callParms[i] = null;
+                Object value = null;
                 Parameter p = methodParms.get(i);
                 if (p.ignore()) {
                     continue;
@@ -96,9 +96,37 @@ public class WebiRequestHandler extends AbstractHandler {
                 switch (p.getParmType()) {
                     case PATH:
                         break;
+                    case HEADER:
+                        String headerValue = req.getRequest().getHeader(name);
+                        if (ReflectUtils.isPrimitive(p.getType())) {
+                            value = ConvertUtils.convert(headerValue, p.getType());
+                        } else {
+                            value = headerValue;
+                        }
+                        break;
                     default:
                         if (p.hasAnnotation(Body.class)) {
-                            callParms[i] = readBODYParm(req,p);
+                            value = readBODYParm(req,p);
+                            break;
+                        }
+                        if (HttpServletRequest.class.isAssignableFrom(p.getType())) {
+                            value = req.getRequest();
+                            break;
+                        }
+                        if (HttpServletResponse.class.isAssignableFrom(p.getType())) {
+                            value = req.getResponse();
+                            break;
+                        }
+                        if (InputStream.class.isAssignableFrom(p.getType())) {
+                            value = req.getBodyStream();
+                            break;
+                        }
+                        if (OutputStream.class.isAssignableFrom(p.getType())) {
+                            value = req.getResponse().getOutputStream();
+                            break;
+                        }
+                        if (WebiRequest.class.isAssignableFrom(p.getType())) {
+                            value = req;
                             break;
                         }
                         
@@ -107,17 +135,19 @@ public class WebiRequestHandler extends AbstractHandler {
                             values = p.getDefaultValue();
                         }
 
-                        callParms[i] = readGETParm(p, values);
+                        value = readGETParm(p, values);
                         break;
                 }
                 
-                callParms[i] = refineValue(callParms[i],p.getType());
+                value = refineValue(value,p.getType());
                 
-                if (p.isRequired() && isMissing(callParms[i]))
+                if (p.isRequired() && isMissing(value))
                     throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+name);
+                
+                invokeArgs[i] = value;
             }
         }
-        return callParms;
+        return invokeArgs;
     }
     
     private Object refineValue(Object value,Class type) {
@@ -157,7 +187,7 @@ public class WebiRequestHandler extends AbstractHandler {
         return missing;
     }
     
-    private Object readBODYParm(WebRequest req,Parameter p) throws Exception {
+    private Object readBODYParm(WebiRequest req,Parameter p) throws Exception {
         return bs.read(new Input(req.getBodyStream(), req.getContentType()), p.getType());
     }
 
@@ -180,6 +210,7 @@ public class WebiRequestHandler extends AbstractHandler {
             } else if (ReflectUtils.isPrimitive(p.getType())) {
                 return ConvertUtils.convert(values[0], p.getType());
             }
+            return values[0];
         }
         return null;
     }
