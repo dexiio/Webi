@@ -1,8 +1,5 @@
 package com.vonhof.webi;
 
-import com.vonhof.webi.HttpException;
-import com.vonhof.webi.RequestHandler;
-import com.vonhof.webi.WebiContext;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -16,9 +13,22 @@ import javax.servlet.ServletException;
  */
 public class FileRequestHandler implements RequestHandler {
     
+    /**
+     * Mime type map
+     */
     private final Map<String,String> mimeTypes = new HashMap<String, String>();
+    /**
+     * Document root
+     */
     private String docRoot = "./";
+    /**
+     * Default mime type - used when no mime type could be found from file extension
+     */
     private String defaultMimeType = "text/plain";
+    
+    /**
+     * Index file - defaults to this file if url points to directory
+     */
     private String indexFileName = "index.html";
 
     public void handle(WebiContext ctxt) throws IOException, ServletException {
@@ -51,6 +61,13 @@ public class FileRequestHandler implements RequestHandler {
         }
     }
     
+    /**
+     * Called when url points to directory and no index file was found. 
+     * Outputs dir contents
+     * @param req
+     * @param dir
+     * @throws IOException 
+     */
     protected void serveDir(WebiContext req,File dir) throws IOException {
         
         req.setResponseType("text/html");
@@ -74,7 +91,12 @@ public class FileRequestHandler implements RequestHandler {
         req.getOutputStream().write(sb.toString().getBytes());
         req.flushBuffer();
     }
-    
+    /**
+     * Serve file from local filesystem. Gets mime type from file
+     * @param req
+     * @param file
+     * @throws IOException 
+     */
     protected void serveFile(WebiContext req,File file) throws IOException {
         req.setResponseType(getResponseType(file));
 
@@ -85,6 +107,11 @@ public class FileRequestHandler implements RequestHandler {
         req.flushBuffer();
     }
     
+    /**
+     * Get mime type from file name (extension)
+     * @param file
+     * @return 
+     */
     protected String getResponseType(File file) {
         String[] parts = file.getName().split("\\.");
         String ext = parts[parts.length-1].toLowerCase();
@@ -94,23 +121,44 @@ public class FileRequestHandler implements RequestHandler {
         return mimeType;
     }
 
+    /**
+     * Set default index file for directories
+     * @param indexFileName 
+     */
     public void setIndexFileName(String indexFileName) {
         this.indexFileName = indexFileName;
     }
 
+    /**
+     * Set document root
+     * @param docRoot 
+     */
     public void setDocumentRoot(String docRoot) {
         this.docRoot = docRoot;
     }
 
+    /**
+     * Add mime type to file extension mapping
+     * @param fileExtension
+     * @param mimeType 
+     */
     public void addMimeType(String fileExtension, String mimeType) {
         mimeTypes.put(fileExtension.toLowerCase(), mimeType.toLowerCase());
     }
 
+    /**
+     * Set default mime type - used as fallback for file extensions 
+     * not found in mime type map
+     * @param defaultMimeType 
+     */
     public void setDefaultMimeType(String defaultMimeType) {
         this.defaultMimeType = defaultMimeType;
     }
     
-    
+    /**
+     * Get file handler initialized with typical mime types
+     * @return 
+     */
     public static FileRequestHandler getStandardFileHandler() {
         FileRequestHandler out = new FileRequestHandler();
         out.addMimeType("jpg","image/jpeg");

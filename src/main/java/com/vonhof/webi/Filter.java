@@ -5,8 +5,11 @@ package com.vonhof.webi;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public interface Filter {
+    
     /**
-     * Apply filter - if return false - stops request
+     * Apply filter
+     * @param input
+     * @return if false then webi will stop processing request
      */
     public boolean apply(WebiContext input);
 }

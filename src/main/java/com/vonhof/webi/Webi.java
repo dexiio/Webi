@@ -16,11 +16,24 @@ import org.eclipse.jetty.server.nio.SelectChannelConnector;
  */
 public final class Webi {
 
+    /**
+     * Request handler map
+     */
     private final PathPatternMap<RequestHandler> requestHandlers = new PathPatternMap<RequestHandler>();
+    /**
+     * Filter map
+     */
     private final PathPatternMap<Filter> filters = new PathPatternMap<Filter>();
     
+    /**
+     * Jetty server instance
+     */
     private final Server server;
 
+    /**
+     * Setup webi server on specified port
+     * @param port 
+     */
     public Webi(int port) {
         server = new Server();
         final SelectChannelConnector connector = new SelectChannelConnector();
@@ -28,32 +41,57 @@ public final class Webi {
         connector.setAcceptors(Runtime.getRuntime().availableProcessors());
         server.setConnectors(new Connector[]{connector});
     }
+    
+    /**
+     * Setup webi server using specified jetty server
+     * @param server 
+     */
+    public Webi(Server server) {
+        this.server = server;
+    }
+    
 
 
+    /**
+     * Start webi server - blocks until server is stopped
+     * @throws Exception 
+     */
     public void start() throws Exception {
         server.setHandler(new Handler());
         server.start();
         server.join();
     }
     
-    public void add(PathPattern path,RequestHandler handler) {
-        requestHandlers.put(path, handler);
+    /**
+     * Stop webi server
+     * @throws Exception 
+     */
+    public void stop() throws Exception {
+        server.stop();
     }
     
-    public void add(PathPattern path,Filter filter) {
-        filters.put(path, filter);
-    }
-    
-    
+    /**
+     * Add request handler at path
+     * @param path
+     * @param handler 
+     */
     public void add(String path,RequestHandler handler) {
         requestHandlers.put(path, handler);
     }
     
+    /**
+     * Add filter at path
+     * @param path
+     * @param filter 
+     */
     public void add(String path,Filter filter) {
         filters.put(path, filter);
     }
     
     
+    /**
+     * Internal webi jetty handler
+     */
     private class Handler extends AbstractHandler {
 
         public void handle(String path,
