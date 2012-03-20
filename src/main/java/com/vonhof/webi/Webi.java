@@ -1,6 +1,9 @@
 package com.vonhof.webi;
 
+import com.vonhof.webi.websocket.SocketService;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -9,13 +12,19 @@ import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.WebSocketFactory;
+import org.eclipse.jetty.websocket.WebSocketHandler;
 
 /**
  * Main Webi method
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public final class Webi {
-
+    /**
+     * Request handler map
+     */
+    private final PathPatternMap<SocketService> webSockets = new PathPatternMap<SocketService>();
     /**
      * Request handler map
      */
@@ -57,6 +66,8 @@ public final class Webi {
      * @throws Exception 
      */
     public void start() throws Exception {
+        
+        WebSocketHandler handler;
         server.setHandler(new Handler());
         server.start();
         server.join();
@@ -88,17 +99,31 @@ public final class Webi {
         filters.put(path, filter);
     }
     
+    /**
+     * Add request handler at path
+     * @param path
+     * @param handler 
+     */
+    public void add(String path,SocketService server) {
+        webSockets.put(path, server);
+    }
     
     /**
      * Internal webi jetty handler
      */
-    private class Handler extends AbstractHandler {
+    private class Handler extends AbstractHandler implements WebSocketFactory.Acceptor {
+        
+        private final WebSocketFactory webSocketFactory = new WebSocketFactory(this, 3*1024);
 
         public void handle(String path,
                 Request baseRequest,
                 HttpServletRequest request,
                 HttpServletResponse response)
                 throws IOException, ServletException {
+            
+            if (webSocketFactory.acceptWebSocket(request,response)) {
+                return;
+            }
             
             RequestHandler handler = requestHandlers.get(path);
             if (handler != null) {
@@ -118,6 +143,22 @@ public final class Webi {
             } else {
                 response.sendError(404,"Not found");
             }
+        }
+
+        public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
+            SocketService service = webSockets.get(request.getPathInfo());
+            if (service != null) {
+                try {
+                    return service.newClient();
+                } catch (Exception ex) {
+                    Logger.getLogger(Webi.class.getName()).log(Level.SEVERE, null, ex);
+                }
+            }
+            return null;
+        }
+
+        public boolean checkOrigin(HttpServletRequest request, String origin) {
+            return true;
         }
     }
 }

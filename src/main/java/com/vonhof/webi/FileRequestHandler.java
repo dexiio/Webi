@@ -98,7 +98,7 @@ public class FileRequestHandler implements RequestHandler {
      * @throws IOException 
      */
     protected void serveFile(WebiContext req,File file) throws IOException {
-        req.setResponseType(getResponseType(file));
+        req.setHeader("Content-type",getResponseType(file));
 
         FileInputStream fileIn = new FileInputStream(file);
         while(fileIn.available() > 0) {

@@ -5,6 +5,8 @@ import com.vonhof.babelshark.language.JsonLanguage;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.rest.RESTRequestHandler;
+import com.vonhof.webi.websocket.EventHandler;
+import com.vonhof.webi.websocket.SocketService;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -31,7 +33,7 @@ public class WebiServer {
         webi.add("/", fileHandler);
         
         
-        
+        webi.add("/socket/",new SocketService(SocketTest.class));
         //Start the webi webserver
         webi.start();
     }
@@ -89,5 +91,20 @@ public class WebiServer {
             return "hello "+ text + " other: "+ other;
         }
         
+        
+        
+    }
+    
+    public static class SocketTest extends SocketService.Client {
+        
+        @EventHandler("add")
+        public void add(Map<String,String> row) throws Exception {
+            reply("added", row);
+        }
+        
+        @EventHandler("delete")
+        public void delete(String id) {
+            
+        }
     }
 }

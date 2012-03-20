@@ -47,7 +47,12 @@
         <dependency>
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-server</artifactId>
-            <version>8.0.0.M2</version>
+            <version>8.1.2.v20120308</version>
+        </dependency>
+        <dependency>
+            <groupId>org.eclipse.jetty</groupId>
+            <artifactId>jetty-websocket</artifactId>
+            <version>8.1.2.v20120308</version>
         </dependency>
         <dependency>
             <groupId>vonhof</groupId>

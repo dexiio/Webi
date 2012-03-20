@@ -19,13 +19,22 @@ public final class WebiContext {
     private final GETMap GETMap;
     private String responseType = "text/plain";
     
-    protected WebiContext(String path, HttpServletRequest request, HttpServletResponse response) {
+    public WebiContext(String path, HttpServletRequest request, HttpServletResponse response) {
         this.path = path;
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
         GETMap = new GETMap(request.getParameterMap());
     }
+
+    public HttpServletRequest getRequest() {
+        return request;
+    }
+
+    public HttpServletResponse getResponse() {
+        return response;
+    }
+    
 
     /**
      * Get requested path

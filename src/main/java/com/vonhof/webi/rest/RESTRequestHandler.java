@@ -17,7 +17,12 @@ import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.WebSocketFactory;
 
 /**
  * REST web service request handling
@@ -62,6 +67,24 @@ public class RESTRequestHandler implements RequestHandler {
         } catch (Throwable ex) {
             ctxt.sendError(ex);
         }
+    }
+    
+    public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
+        WebiContext ctxt = new WebiContext(request.getPathInfo(),request, null);
+        ctxt.setResponseType(protocol);
+        try {
+            Object out = invokeAction(ctxt);
+            if (out instanceof WebSocket)
+                return (WebSocket) out;
+            else
+                throw new HttpException(HttpException.INTERNAL_ERROR,
+                        "Wrong return type for websocket method");
+            
+        } catch (HttpException ex) {
+            Logger.getLogger(RESTRequestHandler.class.getName()).
+                    log(Level.SEVERE, null, ex);
+        }
+        return null;
     }
 
     /**
@@ -287,6 +310,10 @@ public class RESTRequestHandler implements RequestHandler {
         }
 
         return out;
+    }
+
+    public boolean checkOrigin(HttpServletRequest request, String origin) {
+        return true;
     }
 
     /**
