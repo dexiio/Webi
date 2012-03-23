@@ -39,6 +39,7 @@ public class BeanContext {
     public void inject(Object obj) {
         Class clz = obj.getClass();
         Field[] fields = clz.getDeclaredFields();
+        boolean injectedAll = true;
         for(Field f:fields) {
             Inject annotation = f.getAnnotation(Inject.class);
             if (annotation == null) 
@@ -51,6 +52,7 @@ public class BeanContext {
                     if (bean != null) {
                         f.set(obj, bean);
                     } else {
+                        injectedAll = false;
                         LOG.log(Level.WARNING,"No bean registered for class: {0}",f.getType().getName());
                     }
                 }
@@ -58,7 +60,8 @@ public class BeanContext {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
-        if (obj instanceof AfterInject) {
+        //Only call if all fields were injected (it may be too soon)
+        if (injectedAll && obj instanceof AfterInject) {
             ((AfterInject)obj).afterInject();
         }
     }
