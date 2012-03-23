@@ -1,4 +1,4 @@
-package com.vonhof.webi.rest;
+package com.vonhof.webi.mvc;
 
 import com.vonhof.webi.HttpMethod;
 import java.lang.reflect.Method;

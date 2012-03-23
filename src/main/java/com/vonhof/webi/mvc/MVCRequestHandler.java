@@ -1,4 +1,4 @@
-package com.vonhof.webi.rest;
+package com.vonhof.webi.mvc;
 
 import com.thoughtworks.paranamer.AdaptiveParanamer;
 import com.thoughtworks.paranamer.Paranamer;
@@ -25,26 +25,26 @@ import javax.servlet.http.HttpServletRequest;
 import org.eclipse.jetty.websocket.WebSocket;
 
 /**
- * REST web service request handling
+ * MVC request handling.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class RESTRequestHandler implements RequestHandler {
+public class MVCRequestHandler implements RequestHandler {
     
     @Inject
     private Webi webi;
     
     @Inject
-    private BabelShark bs;
+    private BabelSharkInstance bs;
     
     private final Paranamer paranamer = new AdaptiveParanamer();
     private final UrlMapper urlMapper;
     
 
-    public RESTRequestHandler(UrlMapper urlMapper) {
+    public MVCRequestHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
     }
     
-    public RESTRequestHandler() {
+    public MVCRequestHandler() {
         this(new DefaultUrlMapper());
     }
     
@@ -91,7 +91,7 @@ public class RESTRequestHandler implements RequestHandler {
                         "Wrong return type for websocket method");
             
         } catch (HttpException ex) {
-            Logger.getLogger(RESTRequestHandler.class.getName()).
+            Logger.getLogger(MVCRequestHandler.class.getName()).
                     log(Level.SEVERE, null, ex);
         }
         return null;

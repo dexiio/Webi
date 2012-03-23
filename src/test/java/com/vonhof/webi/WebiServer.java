@@ -5,7 +5,7 @@ import com.vonhof.babelshark.language.JsonLanguage;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
-import com.vonhof.webi.rest.RESTRequestHandler;
+import com.vonhof.webi.mvc.MVCRequestHandler;
 import com.vonhof.webi.websocket.EventHandler;
 import com.vonhof.webi.websocket.SocketService;
 import java.util.Date;
@@ -33,7 +33,7 @@ public class WebiServer {
         webi.add("/", fileHandler);
         
         //Init ther REST request handler
-        final RESTRequestHandler restHandler = new RESTRequestHandler();
+        final MVCRequestHandler restHandler = new MVCRequestHandler();
         webi.add("/rest/", restHandler);
        
         //Expose the hallo service. You can expose services both before and after you've started webi.
