@@ -1,6 +1,9 @@
 package com.vonhof.webi;
 
+import com.vonhof.babelshark.BabelShark;
+import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.websocket.SocketService;
+import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,7 +17,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.websocket.WebSocket;
 import org.eclipse.jetty.websocket.WebSocketFactory;
-import org.eclipse.jetty.websocket.WebSocketHandler;
 
 /**
  * Main Webi method
@@ -34,6 +36,12 @@ public final class Webi {
      */
     private final PathPatternMap<Filter> filters = new PathPatternMap<Filter>();
     
+    
+    /**
+     * Bean context - handles dependency injection
+     */
+    private final BeanContext beanContext = new BeanContext();
+    
     /**
      * Jetty server instance
      */
@@ -49,6 +57,7 @@ public final class Webi {
         connector.setPort(port);
         connector.setAcceptors(Runtime.getRuntime().availableProcessors());
         server.setConnectors(new Connector[]{connector});
+        init();
     }
     
     /**
@@ -57,6 +66,13 @@ public final class Webi {
      */
     public Webi(Server server) {
         this.server = server;
+        init();
+    }
+    
+    private void init() {
+        beanContext.add(this);
+        beanContext.add(server);
+        beanContext.add(BabelShark.getDefaultInstance());
     }
     
 
@@ -66,8 +82,7 @@ public final class Webi {
      * @throws Exception 
      */
     public void start() throws Exception {
-        
-        WebSocketHandler handler;
+        beanContext.inject();
         server.setHandler(new Handler());
         server.start();
         server.join();
@@ -88,6 +103,7 @@ public final class Webi {
      */
     public void add(String path,RequestHandler handler) {
         requestHandlers.put(path, handler);
+        beanContext.add(handler);
     }
     
     /**
@@ -97,6 +113,7 @@ public final class Webi {
      */
     public void add(String path,Filter filter) {
         filters.put(path, filter);
+        beanContext.add(filter);
     }
     
     /**
@@ -104,8 +121,17 @@ public final class Webi {
      * @param path
      * @param handler 
      */
-    public void add(String path,SocketService server) {
-        webSockets.put(path, server);
+    public void add(String path,SocketService service) {
+        webSockets.put(path, service);
+        beanContext.add(service);
+    }
+
+    public void addBean(Object bean) {
+        beanContext.add(bean);
+    }
+    
+    public <T> T getBean(Class<T> clz) {
+        return beanContext.get(clz);
     }
     
     /**
@@ -121,21 +147,20 @@ public final class Webi {
                 HttpServletResponse response)
                 throws IOException, ServletException {
             
-            if (webSocketFactory.acceptWebSocket(request,response)) {
-                return;
-            }
-            
             RequestHandler handler = requestHandlers.get(path);
             if (handler != null) {
                 path = requestHandlers.trimContext(path);
             }
-                
             
             final WebiContext wr = new WebiContext(path, request, response);
             
             for(Filter filter:filters.getAll(path)) {
                 if (!filter.apply(wr))
                     return;
+            }
+            
+            if (webSocketFactory.acceptWebSocket(request,response)) {
+                return;
             }
             
             if (handler != null) {
@@ -149,7 +174,9 @@ public final class Webi {
             SocketService service = webSockets.get(request.getPathInfo());
             if (service != null) {
                 try {
-                    return service.newClient();
+                    Client client = service.newClient();
+                    beanContext.inject(client);
+                    return client;
                 } catch (Exception ex) {
                     Logger.getLogger(Webi.class.getName()).log(Level.SEVERE, null, ex);
                 }

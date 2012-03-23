@@ -28,11 +28,17 @@ class PathPatternMap<T>  {
         return inner.get(ptrn);
     }
     protected PathPattern getPattern(String path) {
+        PathPattern best = null;
+        int longest = 0;
+                
         for(Entry<PathPattern,T> entry:inner.entrySet()) {
-            if (entry.getKey().matches(path))
-                return entry.getKey();
+            PathPattern key = entry.getKey();
+            int length = key.toString().length();
+            if (key.matches(path) && longest < length) {
+                best = key;
+            }
         }
-        return null;
+        return best;
     }
     
     public List<T> getAll(String path) {

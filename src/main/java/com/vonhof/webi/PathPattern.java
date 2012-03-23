@@ -42,6 +42,9 @@ class PathPattern {
         }
         return path;
     }
-    
-    
+
+    @Override
+    public String toString() {
+        return this.ptrn;
+    }
 }

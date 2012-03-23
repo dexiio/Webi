@@ -7,8 +7,8 @@ import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.exception.MappingException;
 import com.vonhof.webi.HttpException;
 import com.vonhof.webi.RequestHandler;
+import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
-import com.vonhof.webi.WebiContext.GETMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import java.io.IOException;
@@ -19,10 +19,10 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.inject.Inject;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import org.eclipse.jetty.websocket.WebSocket;
-import org.eclipse.jetty.websocket.WebSocketFactory;
 
 /**
  * REST web service request handling
@@ -30,9 +30,15 @@ import org.eclipse.jetty.websocket.WebSocketFactory;
  */
 public class RESTRequestHandler implements RequestHandler {
     
+    @Inject
+    private Webi webi;
+    
+    @Inject
+    private BabelShark bs;
+    
     private final Paranamer paranamer = new AdaptiveParanamer();
     private final UrlMapper urlMapper;
-    private final BabelShark bs = BabelShark.getInstance();
+    
 
     public RESTRequestHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
@@ -41,11 +47,15 @@ public class RESTRequestHandler implements RequestHandler {
     public RESTRequestHandler() {
         this(new DefaultUrlMapper());
     }
+    
     public void expose(Object obj) {
         urlMapper.expose(obj);
+        webi.addBean(obj);
     };
+    
     public void expose(Object obj, String baseUrl) {
         urlMapper.expose(obj, baseUrl);
+        webi.addBean(obj);
     }
     
     public void handle(WebiContext ctxt) throws IOException, ServletException {
@@ -132,75 +142,84 @@ public class RESTRequestHandler implements RequestHandler {
     }
 
     /**
-     * Get arguments array for calling the specified controller action
+     * Converts HTTP request into a suitable argument list for the specified list of parameters 
      * @param req
      * @param methodParms
      * @return
      * @throws Exception 
      */
     private Object[] getMethodArguments(WebiContext req,final List<Parameter> methodParms) throws Exception {
-        final GETMap GET = req.GET();
-        final Object[] invokeArgs = new Object[methodParms.size()];
-        
+        final Object[] out = new Object[methodParms.size()];
         if (!methodParms.isEmpty()) {
 
             parmLoop:
             for (int i = 0; i < methodParms.size(); i++) {
-                Object value = null;
                 Parameter p = methodParms.get(i);
                 if (p.ignore()) {
                     continue;
                 }
                 
-                String name = p.getName();
-
-                switch (p.getParmType()) {
-                    case PATH:
-                        break;
-                    case HEADER:
-                        String headerValue = req.getHeader(name);
-                        if (ReflectUtils.isPrimitive(p.getType())) {
-                            value = ConvertUtils.convert(headerValue, p.getType());
-                        } else {
-                            value = headerValue;
-                        }
-                        break;
-                    default:
-                        if (p.hasAnnotation(Body.class)) {
-                            value = readBODYParm(req,p);
-                            break;
-                        }
-                        if (InputStream.class.isAssignableFrom(p.getType())) {
-                            value = req.getInputStream();
-                            break;
-                        }
-                        if (OutputStream.class.isAssignableFrom(p.getType())) {
-                            value = req.getOutputStream();
-                            break;
-                        }
-                        if (WebiContext.class.isAssignableFrom(p.getType())) {
-                            value = req;
-                            break;
-                        }
-                        
-                        String[] values = GET.getAll(name);
-                        if (values == null) {
-                            values = p.getDefaultValue();
-                        }
-
-                        value = readGETParm(p, values);
-                        break;
-                }
-                
+                Object value = getMethodArgument(req, p);
                 value = refineValue(value,p.getType());
                 
                 if (p.isRequired() && isMissing(value))
-                    throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+name);
+                    throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+p.getName());
                 
-                invokeArgs[i] = value;
+                out[i] = value;
             }
         }
-        return invokeArgs;
+        return out;
+    }
+    
+    /**
+     * Converts HTTP request into the specified method argument (Parameter) (From headers, GET parms etc.)
+     * @param req
+     * @param p
+     * @return
+     * @throws Exception 
+     */
+    private Object getMethodArgument(WebiContext req,Parameter p) throws Exception {
+        Object value = null;
+        String name = p.getName();
+
+        switch (p.getParmType()) {
+            case PATH:
+                break;
+            case HEADER:
+                String headerValue = req.getHeader(name);
+                if (ReflectUtils.isPrimitive(p.getType())) {
+                    value = ConvertUtils.convert(headerValue, p.getType());
+                } else {
+                    value = headerValue;
+                }
+                break;
+            default:
+                if (p.hasAnnotation(Body.class)) {
+                    value = readBODYParm(req,p);
+                    break;
+                }
+                if (InputStream.class.isAssignableFrom(p.getType())) {
+                    value = req.getInputStream();
+                    break;
+                }
+                if (OutputStream.class.isAssignableFrom(p.getType())) {
+                    value = req.getOutputStream();
+                    break;
+                }
+                if (WebiContext.class.isAssignableFrom(p.getType())) {
+                    value = req;
+                    break;
+                }
+
+                String[] values = req.GET().getAll(name);
+                if (values == null) {
+                    values = p.getDefaultValue();
+                }
+
+                value = readGETParm(p, values);
+                break;
+        }
+        return value;
     }
     /**
      * Refine output value

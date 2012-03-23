@@ -1,25 +1,31 @@
 package com.vonhof.webi.websocket;
 
-import com.vonhof.babelshark.BabelShark;
+import com.vonhof.babelshark.BabelSharkInstance;
 import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.node.*;
+import com.vonhof.webi.websocket.SocketService.Client;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.inject.Inject;
 import org.eclipse.jetty.websocket.WebSocket;
 
-public final class SocketService {
+public final class SocketService<T extends SocketService.Client> {
 
+    @Inject
+    private BabelSharkInstance bs;
+    
     private final ConcurrentLinkedQueue<Client> clients = new ConcurrentLinkedQueue<Client>();
-    private final BabelShark bs = BabelShark.getInstance();
     private final Map<String, Method> eventHandlers = new HashMap<String, Method>();
-    private final Class<? extends Client> clientClass;
+    private final Class<T> clientClass;
 
-    public SocketService(Class<? extends Client> clientClass) {
+    public SocketService(Class<T> clientClass) {
         this.clientClass = clientClass;
         readEventHandlers();
     }
@@ -33,55 +39,80 @@ public final class SocketService {
             if (eventHandlerAnno == null) {
                 continue;
             }
-            String event = eventHandlerAnno.value().
-                    toLowerCase();
+            String event = eventHandlerAnno.value().toLowerCase();
+            if (event == null || event.isEmpty())
+                event = m.getName().toLowerCase();
             eventHandlers.put(event, m);
         }
     }
+    
+    public final void broadcast(String event, Object... args) {
+        broadcast(null, event, args);    
+    }
+    
+    public final boolean send(Client client,String event, Object... args) {
+        event = event.toLowerCase();
+        Event evt = new Event(event, args);
+        return send(client, evt);
+    }
 
-    protected void broadcast(Client from,String event, Object... args) throws Exception {
+    public List<T> getClients() {
+        ArrayList<T> out = new ArrayList<T>();
+        for(Client c:clients) {
+            out.add((T)c);
+        }
+        return out;
+    }
+
+    public final void broadcast(Client from,String event, Object... args) {
         event = event.toLowerCase();
         Event evt = new Event(event, args);
         for (Client client : clients) {
             if (from == client) continue;
-            sendTo(client, evt);
+            send(client, evt);
         }
     }
     
     
-    private void sendTo(Client client, Event evt) throws Exception {
-        if (!client.conn.isOpen()) {
-            return;
+    private boolean send(Client client, Event evt) {
+        try {
+            if (!client._connection.isOpen()) {
+                return false;
+            }
+            String contentType = bs.getMimeType(client._connection.getProtocol());
+            if (contentType == null || contentType.isEmpty())
+                contentType = bs.getDefaultType();
+            String output = bs.writeToString(evt, contentType);
+            client._connection.sendMessage(output);
+            return true;
+        } catch (Exception ex) {
+            Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
         }
-        String contentType = bs.getMimeType(client.conn.getProtocol());
-        if (contentType == null || contentType.isEmpty())
-            contentType = bs.getDefaultType();
-        String output = bs.writeToString(evt, contentType);
-        client.conn.sendMessage(output);
     }
     
-    public Client newClient() throws Exception {
+    public T newClient() throws Exception {
         Client client = clientClass.newInstance();
-        client.service = this;
-        return client;
+        client._service = this;
+        return (T) client;
     }
 
-    public static class Client implements WebSocket.OnTextMessage {
-        private Connection conn;
-        private SocketService service;
+    public static class Client<T extends Client> implements WebSocket.OnTextMessage {
+        private Connection _connection;
+        private SocketService<T> _service;
 
         public void onOpen(Connection connection) {
-            service.clients.add(this);
-            this.conn = connection;
+            _service.clients.add(this);
+            this._connection = connection;
         }
 
         public final void onMessage(String data) {
             try {
-                ObjectNode evtNode = service.bs.read(data, service.bs.getDefaultType(), ObjectNode.class);
+                ObjectNode evtNode = _service.bs.read(data, _service.bs.getDefaultType(), ObjectNode.class);
                 ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
                 String evtType = typeNode.getValue().
                         toLowerCase();
-                Method evtHandler = service.eventHandlers.get(evtType);
+                Method evtHandler = _service.eventHandlers.get(evtType);
                 ArrayNode argsNode = (ArrayNode) evtNode.get("args");
 
                 Class<?>[] parms = evtHandler.getParameterTypes();
@@ -107,7 +138,7 @@ public final class SocketService {
                                 type = SharkType.get(parms[i],genParmTypes[0]);
                             }
                         }
-                        args[i] = service.bs.readAsValue(arg, type);
+                        args[i] = _service.bs.readAsValue(arg, type);
                     }
                     argI++;
                 }
@@ -118,13 +149,21 @@ public final class SocketService {
                 handleException(ex);
             }
         }
-        
-        public final void broadcast(String evt,Object ... args) throws Exception {
-            service.broadcast(this,evt, args);
+
+        public SocketService<T> getService() {
+            return _service;
         }
         
-        public final void reply(String evt,Object ... args) throws Exception {
-            service.sendTo(this,new Event(evt, args));
+        
+        public final void broadcast(String evt,Object ... args) {
+            _service.broadcast(this,evt, args);
+        }
+        public final void send(T c,String evt,Object ... args) {
+            _service.send(c,new Event(evt, args));
+        }
+        
+        public final void reply(String evt,Object ... args) {
+            _service.send(this,new Event(evt, args));
         }
 
         public void handleException(Throwable ex) {
@@ -133,7 +172,7 @@ public final class SocketService {
         }
 
         public void onClose(int closeCode, String message) {
-            service.clients.remove(this);
+            _service.clients.remove(this);
         }
     }
 
