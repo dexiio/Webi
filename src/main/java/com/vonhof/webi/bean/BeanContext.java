@@ -58,5 +58,8 @@ public class BeanContext {
                 LOG.log(Level.SEVERE, null, ex);
             }
         }
+        if (obj instanceof AfterInject) {
+            ((AfterInject)obj).afterInject();
+        }
     }
 }

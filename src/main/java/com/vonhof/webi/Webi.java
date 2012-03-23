@@ -101,9 +101,10 @@ public final class Webi {
      * @param path
      * @param handler 
      */
-    public void add(String path,RequestHandler handler) {
+    public <T extends RequestHandler> T add(String path,T handler) {
         requestHandlers.put(path, handler);
         beanContext.add(handler);
+        return handler;
     }
     
     /**
@@ -111,9 +112,10 @@ public final class Webi {
      * @param path
      * @param filter 
      */
-    public void add(String path,Filter filter) {
+    public <T extends Filter> T add(String path,T filter) {
         filters.put(path, filter);
         beanContext.add(filter);
+        return filter;
     }
     
     /**
@@ -121,9 +123,10 @@ public final class Webi {
      * @param path
      * @param handler 
      */
-    public void add(String path,SocketService service) {
+    public <T extends SocketService> T  add(String path,T service) {
         webSockets.put(path, service);
         beanContext.add(service);
+        return service;
     }
 
     public void addBean(Object bean) {

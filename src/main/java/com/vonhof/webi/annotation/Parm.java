@@ -19,6 +19,6 @@ public @interface Parm {
     Type type() default Type.AUTO;
     
     public static enum Type {
-        AUTO,PATH,PARAMETER,HEADER,BODY
+        AUTO,PATH,PARAMETER,HEADER,BODY,INJECT
     }
 }

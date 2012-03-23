@@ -28,17 +28,14 @@ public class WebiServer {
         webi.add("/socket/",new SocketService<SocketTest>(SocketTest.class));
         
         //Init simple file handler
-        FileRequestHandler fileHandler = FileRequestHandler.getStandardFileHandler();
+        FileRequestHandler fileHandler = webi.add("/",FileRequestHandler.getStandardFileHandler());
         fileHandler.setDocumentRoot(System.getProperty("user.home"));
-        webi.add("/", fileHandler);
         
         //Init ther REST request handler
-        final MVCRequestHandler restHandler = new MVCRequestHandler();
-        webi.add("/rest/", restHandler);
-       
+        final MVCRequestHandler restHandler = webi.add("/rest/", new MVCRequestHandler());
+        
         //Expose the hallo service. You can expose services both before and after you've started webi.
-        final HalloService halloService = new HalloService();
-        restHandler.expose(halloService);
+        restHandler.expose(new HalloService());
         
         //Start the webi webserver
         webi.start();

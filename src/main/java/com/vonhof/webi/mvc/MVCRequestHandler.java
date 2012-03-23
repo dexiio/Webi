@@ -193,6 +193,9 @@ public class MVCRequestHandler implements RequestHandler {
                     value = headerValue;
                 }
                 break;
+            case INJECT:
+                value = webi.getBean(p.getType());
+                break;
             default:
                 if (p.hasAnnotation(Body.class)) {
                     value = readBODYParm(req,p);
