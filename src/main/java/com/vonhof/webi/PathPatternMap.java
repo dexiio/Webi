@@ -36,6 +36,7 @@ class PathPatternMap<T>  {
             int length = key.toString().length();
             if (key.matches(path) && longest < length) {
                 best = key;
+                longest = length;
             }
         }
         return best;

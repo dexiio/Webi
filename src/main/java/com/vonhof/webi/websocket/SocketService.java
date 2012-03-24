@@ -115,28 +115,22 @@ public final class SocketService<T extends SocketService.Client> {
                 Method evtHandler = _service.eventHandlers.get(evtType);
                 ArrayNode argsNode = (ArrayNode) evtNode.get("args");
 
-                Class<?>[] parms = evtHandler.getParameterTypes();
+                Class<?>[] parmTypes = evtHandler.getParameterTypes();
+                Type[] genParmTypes = evtHandler.getGenericParameterTypes();
 
                 int argI = 0;
-                Object[] args = new Object[parms.length];
+                Object[] args = new Object[parmTypes.length];
                 for (int i = 0; i < args.length; i++) {
-                    if (Client.class.isAssignableFrom(parms[i])) {
+                    if (Client.class.isAssignableFrom(parmTypes[i])) {
                         args[i] = this;
                         continue;
                     }
                     SharkNode arg = argsNode.get(argI);
                     if (arg != null) {
-                        Type[] genParmTypes = evtHandler.getGenericParameterTypes();
-                        SharkType type = SharkType.get(parms[i]);
-                        if (genParmTypes.length > 0) {
-                            if (ReflectUtils.isMap(parms[i])) {
-                                if (genParmTypes.length > 1)
-                                    type = SharkType.get(parms[i],genParmTypes[1]);
-                                else
-                                    type = SharkType.get(parms[i],genParmTypes[0]);
-                            } else if (ReflectUtils.isCollection(parms[i])) {
-                                type = SharkType.get(parms[i],genParmTypes[0]);
-                            }
+                        
+                        SharkType type = SharkType.get(parmTypes[i]);
+                        if (genParmTypes[i] != null) {
+                            type = SharkType.get(parmTypes[i],genParmTypes[i]);
                         }
                         args[i] = _service.bs.readAsValue(arg, type);
                     }

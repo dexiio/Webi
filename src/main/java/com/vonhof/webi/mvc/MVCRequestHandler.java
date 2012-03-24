@@ -5,6 +5,7 @@ import com.thoughtworks.paranamer.Paranamer;
 import com.vonhof.babelshark.*;
 import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.exception.MappingException;
+import com.vonhof.babelshark.node.SharkType;
 import com.vonhof.webi.HttpException;
 import com.vonhof.webi.RequestHandler;
 import com.vonhof.webi.Webi;
@@ -16,6 +17,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -160,7 +162,7 @@ public class MVCRequestHandler implements RequestHandler {
                 }
                 
                 Object value = getMethodArgument(req, p);
-                value = refineValue(value,p.getType());
+                value = refineValue(value,p.getType().getType());
                 
                 if (p.isRequired() && isMissing(value))
                     throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+p.getName());
@@ -187,29 +189,29 @@ public class MVCRequestHandler implements RequestHandler {
                 break;
             case HEADER:
                 String headerValue = req.getHeader(name);
-                if (ReflectUtils.isPrimitive(p.getType())) {
-                    value = ConvertUtils.convert(headerValue, p.getType());
+                if (ReflectUtils.isPrimitive(p.getType().getType())) {
+                    value = ConvertUtils.convert(headerValue, p.getType().getType());
                 } else {
                     value = headerValue;
                 }
                 break;
             case INJECT:
-                value = webi.getBean(p.getType());
+                value = webi.getBean(p.getType().getType());
                 break;
             default:
                 if (p.hasAnnotation(Body.class)) {
                     value = readBODYParm(req,p);
                     break;
                 }
-                if (InputStream.class.isAssignableFrom(p.getType())) {
+                if (InputStream.class.isAssignableFrom(p.getType().getType())) {
                     value = req.getInputStream();
                     break;
                 }
-                if (OutputStream.class.isAssignableFrom(p.getType())) {
+                if (OutputStream.class.isAssignableFrom(p.getType().getType())) {
                     value = req.getOutputStream();
                     break;
                 }
-                if (WebiContext.class.isAssignableFrom(p.getType())) {
+                if (WebiContext.class.isAssignableFrom(p.getType().getType())) {
                     value = req;
                     break;
                 }
@@ -293,22 +295,21 @@ public class MVCRequestHandler implements RequestHandler {
      */
     private Object readGETParm(Parameter p, String[] values) throws Exception {
         if (values != null && values.length > 0) {
-            if (ReflectUtils.isCollection(p.getType())) {
-                if (p.getType().
-                        isArray()) {
+            if (p.getType().isCollection()) {
+                if (p.getType().getType().isArray()) {
                     Object[] realValues = new Object[values.length];
                     for (int x = 0; x < values.length; x++) {
-                        realValues[x] = ConvertUtils.convert(values[x], p.getType());
+                        realValues[x] = ConvertUtils.convert(values[x], p.getType().getType().getComponentType());
                     }
                     return realValues;
                 } else {
-                    Collection list = (Collection) p.getType().newInstance();
+                    Collection list = (Collection) p.getType().getType().newInstance();
                     list.addAll(Arrays.asList(values));
                     return list;
                 }
 
-            } else if (ReflectUtils.isPrimitive(p.getType())) {
-                return ConvertUtils.convert(values[0], p.getType());
+            } else if (ReflectUtils.isPrimitive(p.getType().getType())) {
+                return ConvertUtils.convert(values[0], p.getType().getType());
             }
             return values[0];
         }
@@ -324,11 +325,19 @@ public class MVCRequestHandler implements RequestHandler {
         String[] parmNames = paranamer.lookupParameterNames(m, false);
 
         Class<?>[] parmTypes = m.getParameterTypes();
+        Type[] genParmTypes = m.getGenericParameterTypes();
         Annotation[][] parmAnnotations = m.getParameterAnnotations();
 
         List<Parameter> out = new LinkedList<Parameter>();
         for (int i = 0; i < parmTypes.length; i++) {
-            out.add(new Parameter(parmNames[i], parmTypes[i], parmAnnotations[i]));
+            
+            SharkType type = SharkType.get(parmTypes[i]);
+            if (genParmTypes[i] != null) {
+                type = SharkType.get(parmTypes[i],genParmTypes[i]);
+            }
+            
+            
+            out.add(new Parameter(parmNames[i], type, parmAnnotations[i]));
         }
 
         return out;
@@ -345,12 +354,12 @@ public class MVCRequestHandler implements RequestHandler {
     private static final class Parameter {
 
         private final String name;
-        private final Class type;
+        private final SharkType type;
         private final Map<Class<? extends Annotation>, Annotation> annotations =
                 new HashMap<Class<? extends Annotation>, Annotation>();
         private final Parm parmAnno;
 
-        public Parameter(String name, Class type, Annotation[] annotations) {
+        public Parameter(String name, SharkType type, Annotation[] annotations) {
             this.type = type;
             for (Annotation a : annotations) {
                 this.annotations.put(a.annotationType(), a);
@@ -390,7 +399,7 @@ public class MVCRequestHandler implements RequestHandler {
             return name;
         }
 
-        public Class getType() {
+        public SharkType getType() {
             return type;
         }
 
