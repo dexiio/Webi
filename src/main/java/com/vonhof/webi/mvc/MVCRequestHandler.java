@@ -1,11 +1,11 @@
 package com.vonhof.webi.mvc;
 
-import com.thoughtworks.paranamer.AdaptiveParanamer;
-import com.thoughtworks.paranamer.Paranamer;
 import com.vonhof.babelshark.*;
 import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.exception.MappingException;
-import com.vonhof.babelshark.node.SharkType;
+import com.vonhof.babelshark.reflect.ClassInfo;
+import com.vonhof.babelshark.reflect.MethodInfo;
+import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpException;
 import com.vonhof.webi.RequestHandler;
 import com.vonhof.webi.Webi;
@@ -15,9 +15,6 @@ import com.vonhof.webi.annotation.Parm;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -38,7 +35,6 @@ public class MVCRequestHandler implements RequestHandler {
     @Inject
     private BabelSharkInstance bs;
     
-    private final Paranamer paranamer = new AdaptiveParanamer();
     private final UrlMapper urlMapper;
     
 
@@ -110,19 +106,26 @@ public class MVCRequestHandler implements RequestHandler {
         if (!path.isEmpty())
             path = path.substring(1);
         try {
+            
+            //Get controller instance
             Object obj = urlMapper.getObjectByURL(path);
             if (obj == null) {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
-            Method method = urlMapper.getMethodByURL(path, req.getMethod());
+            
+            //Get method
+            MethodInfo method = urlMapper.getMethodByURL(path, req.getMethod());
             if (method == null) {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
 
-            final List<Parameter> methodParms = getMethodParameters(method);
-            final Object[] callParms = getMethodArguments(req,methodParms);
+            //Resolve method argumetns from request
+            final Object[] callParms = getMethodArguments(req,method);
             
+            //Invoke method
             Object output = method.invoke(obj, callParms);
+            
+            //Refine value before outputting
             return refineValue(output,method.getReturnType());
         } catch (HttpException ex) {
             throw ex;
@@ -140,7 +143,7 @@ public class MVCRequestHandler implements RequestHandler {
             format = bs.getDefaultType();
         }
         //Set response type
-        ctxt.setResponseType(bs.getMimeType(format));
+        ctxt.setResponseType(bs.getMimeType(format,true));
     }
 
     /**
@@ -150,25 +153,11 @@ public class MVCRequestHandler implements RequestHandler {
      * @return
      * @throws Exception 
      */
-    private Object[] getMethodArguments(WebiContext req,final List<Parameter> methodParms) throws Exception {
-        final Object[] out = new Object[methodParms.size()];
-        if (!methodParms.isEmpty()) {
-
-            parmLoop:
-            for (int i = 0; i < methodParms.size(); i++) {
-                Parameter p = methodParms.get(i);
-                if (p.ignore()) {
-                    continue;
-                }
-                
-                Object value = getMethodArgument(req, p);
-                value = refineValue(value,p.getType().getType());
-                
-                if (p.isRequired() && isMissing(value))
-                    throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+p.getName());
-                
-                out[i] = value;
-            }
+    private Object[] getMethodArguments(WebiContext req,MethodInfo method) throws Exception {
+        List<Parameter> parms = new ArrayList<Parameter>(method.getParameters().values());
+        final Object[] out = new Object[parms.size()];
+        for (int i = 0; i < parms.size(); i++) {
+            out[i] = getMethodArgument(req, parms.get(i));
         }
         return out;
     }
@@ -181,10 +170,18 @@ public class MVCRequestHandler implements RequestHandler {
      * @throws Exception 
      */
     private Object getMethodArgument(WebiContext req,Parameter p) throws Exception {
+        if (p.hasAnnotation(Ignore.class)) {
+            return null;
+        }
+        final Parm parmAnno = p.getAnnotation(Parm.class);
+        final Parm.Type parmType = parmAnno != null ? parmAnno.type() : Parm.Type.AUTO;
+        final String[] defaultValue = parmAnno != null ? parmAnno.defaultValue() : new String[0];
+        final boolean required  = parmAnno != null ? parmAnno.required() : false; 
+
         Object value = null;
         String name = p.getName();
 
-        switch (p.getParmType()) {
+        switch (parmType) {
             case PATH:
                 break;
             case HEADER:
@@ -203,27 +200,33 @@ public class MVCRequestHandler implements RequestHandler {
                     value = readBODYParm(req,p);
                     break;
                 }
-                if (InputStream.class.isAssignableFrom(p.getType().getType())) {
+                if (p.getType().inherits(InputStream.class)) {
                     value = req.getInputStream();
                     break;
                 }
-                if (OutputStream.class.isAssignableFrom(p.getType().getType())) {
+                if (p.getType().inherits(OutputStream.class)) {
                     value = req.getOutputStream();
                     break;
                 }
-                if (WebiContext.class.isAssignableFrom(p.getType().getType())) {
+                if (p.getType().inherits(WebiContext.class)) {
                     value = req;
                     break;
                 }
 
                 String[] values = req.GET().getAll(name);
                 if (values == null) {
-                    values = p.getDefaultValue();
+                    values = defaultValue;
                 }
 
                 value = readGETParm(p, values);
                 break;
         }
+        
+        value = refineValue(value,p.getType());
+        
+        if (required && isMissing(value))
+            throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+p.getName());
+        
         return value;
     }
     /**
@@ -232,19 +235,19 @@ public class MVCRequestHandler implements RequestHandler {
      * @param type
      * @return 
      */
-    private Object refineValue(Object value,Class type) {
+    private Object refineValue(Object value,ClassInfo type) {
         if (value != null) 
             return value;
         //Make sure certain values never is null
-        if (type.equals(String.class))
+        if (type.isA(String.class))
             return "";
         if (type.isArray())
             return new Object[0];
-        if (Set.class.isAssignableFrom(type))
+        if (type.inherits(Set.class))
             return Collections.EMPTY_SET;
-        if (Map.class.isAssignableFrom(type))
+        if (type.inherits(Map.class))
             return Collections.EMPTY_MAP;
-        if (List.class.isAssignableFrom(type))
+        if (type.inherits(Collection.class))
             return Collections.EMPTY_LIST;
         return value;
     }
@@ -294,118 +297,7 @@ public class MVCRequestHandler implements RequestHandler {
      * @throws Exception 
      */
     private Object readGETParm(Parameter p, String[] values) throws Exception {
-        if (values != null && values.length > 0) {
-            if (p.getType().isCollection()) {
-                if (p.getType().getType().isArray()) {
-                    Object[] realValues = new Object[values.length];
-                    for (int x = 0; x < values.length; x++) {
-                        realValues[x] = ConvertUtils.convert(values[x], p.getType().getType().getComponentType());
-                    }
-                    return realValues;
-                } else {
-                    Collection list = (Collection) p.getType().getType().newInstance();
-                    list.addAll(Arrays.asList(values));
-                    return list;
-                }
-
-            } else if (ReflectUtils.isPrimitive(p.getType().getType())) {
-                return ConvertUtils.convert(values[0], p.getType().getType());
-            }
-            return values[0];
-        }
-        return null;
-    }
-
-    /**
-     * Get method parameters
-     * @param m
-     * @return 
-     */
-    private List<Parameter> getMethodParameters(Method m) {
-        String[] parmNames = paranamer.lookupParameterNames(m, false);
-
-        Class<?>[] parmTypes = m.getParameterTypes();
-        Type[] genParmTypes = m.getGenericParameterTypes();
-        Annotation[][] parmAnnotations = m.getParameterAnnotations();
-
-        List<Parameter> out = new LinkedList<Parameter>();
-        for (int i = 0; i < parmTypes.length; i++) {
-            
-            SharkType type = SharkType.get(parmTypes[i]);
-            if (genParmTypes[i] != null) {
-                type = SharkType.get(parmTypes[i],genParmTypes[i]);
-            }
-            
-            
-            out.add(new Parameter(parmNames[i], type, parmAnnotations[i]));
-        }
-
-        return out;
-    }
-
-    public boolean checkOrigin(HttpServletRequest request, String origin) {
-        return true;
-    }
-
-    /**
-     * Internal representaion of a method parameter
-     * Used in the mapping from HTTP to Method
-     */
-    private static final class Parameter {
-
-        private final String name;
-        private final SharkType type;
-        private final Map<Class<? extends Annotation>, Annotation> annotations =
-                new HashMap<Class<? extends Annotation>, Annotation>();
-        private final Parm parmAnno;
-
-        public Parameter(String name, SharkType type, Annotation[] annotations) {
-            this.type = type;
-            for (Annotation a : annotations) {
-                this.annotations.put(a.annotationType(), a);
-            }
-
-            parmAnno = getAnnotation(Parm.class);
-            if (parmAnno != null
-                    && !parmAnno.value().
-                    isEmpty()) {
-                name = parmAnno.value();
-            }
-            this.name = name;
-
-        }
-
-        public boolean ignore() {
-            return hasAnnotation(Ignore.class);
-        }
-
-        public Parm.Type getParmType() {
-            return parmAnno != null ? parmAnno.type() : Parm.Type.AUTO;
-        }
-
-        public String[] getDefaultValue() {
-            return parmAnno != null ? parmAnno.defaultValue() : new String[0];
-        }
-
-        public <T extends Annotation> T getAnnotation(Class<T> type) {
-            return (T) this.annotations.get(type);
-        }
-
-        public <T extends Annotation> boolean hasAnnotation(Class<T> type) {
-            return this.annotations.containsKey(type);
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public SharkType getType() {
-            return type;
-        }
-
-        private boolean isRequired() {
-            return parmAnno != null ? parmAnno.required() : false;
-        }
+        return ConvertUtils.convertCollection(p.getType(),values);
     }
 
 }

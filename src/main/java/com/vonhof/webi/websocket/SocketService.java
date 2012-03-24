@@ -1,11 +1,14 @@
 package com.vonhof.webi.websocket;
 
 import com.vonhof.babelshark.BabelSharkInstance;
-import com.vonhof.babelshark.ReflectUtils;
-import com.vonhof.babelshark.node.*;
+import com.vonhof.babelshark.node.ArrayNode;
+import com.vonhof.babelshark.node.ObjectNode;
+import com.vonhof.babelshark.node.SharkNode;
+import com.vonhof.babelshark.node.ValueNode;
+import com.vonhof.babelshark.reflect.ClassInfo;
+import com.vonhof.babelshark.reflect.MethodInfo;
+import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.websocket.SocketService.Client;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,19 +25,19 @@ public final class SocketService<T extends SocketService.Client> {
     private BabelSharkInstance bs;
     
     private final ConcurrentLinkedQueue<Client> clients = new ConcurrentLinkedQueue<Client>();
-    private final Map<String, Method> eventHandlers = new HashMap<String, Method>();
-    private final Class<T> clientClass;
+    private final Map<String, MethodInfo> eventHandlers = new HashMap<String, MethodInfo>();
+    private final ClassInfo<T> clientClass;
 
     public SocketService(Class<T> clientClass) {
-        this.clientClass = clientClass;
+        this.clientClass = ClassInfo.from(clientClass);
         readEventHandlers();
     }
     
     
 
     private void readEventHandlers() {
-        Method[] methods = clientClass.getMethods();
-        for (Method m : methods) {
+        List<MethodInfo> methods = clientClass.getMethods();
+        for (MethodInfo m : methods) {
             EventHandler eventHandlerAnno = m.getAnnotation(EventHandler.class);
             if (eventHandlerAnno == null) {
                 continue;
@@ -76,14 +79,13 @@ public final class SocketService<T extends SocketService.Client> {
     
     private boolean send(Client client, Event evt) {
         try {
-            if (!client._connection.isOpen()) {
+            if (!client.connection.isOpen()) {
                 return false;
             }
-            String contentType = bs.getMimeType(client._connection.getProtocol());
-            if (contentType == null || contentType.isEmpty())
-                contentType = bs.getDefaultType();
-            String output = bs.writeToString(evt, contentType);
-            client._connection.sendMessage(output);
+            final String contentType = bs.getMimeType(client.connection.getProtocol(),true);
+            final String output = bs.writeToString(evt, contentType);
+            
+            client.connection.sendMessage(output);
             return true;
         } catch (Exception ex) {
             Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
@@ -93,46 +95,46 @@ public final class SocketService<T extends SocketService.Client> {
     
     public T newClient() throws Exception {
         Client client = clientClass.newInstance();
-        client._service = this;
         return (T) client;
     }
 
     public static class Client<T extends Client> implements WebSocket.OnTextMessage {
-        private Connection _connection;
-        private SocketService<T> _service;
+        private Connection connection;
+        
+        @Inject
+        private SocketService<T> service;
+        
+        @Inject
+        private BabelSharkInstance bs;
 
         public void onOpen(Connection connection) {
-            _service.clients.add(this);
-            this._connection = connection;
+            service.clients.add(this);
+            this.connection = connection;
         }
 
         public final void onMessage(String data) {
             try {
-                ObjectNode evtNode = _service.bs.read(data, _service.bs.getDefaultType(), ObjectNode.class);
-                ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
-                String evtType = typeNode.getValue().
-                        toLowerCase();
-                Method evtHandler = _service.eventHandlers.get(evtType);
-                ArrayNode argsNode = (ArrayNode) evtNode.get("args");
-
-                Class<?>[] parmTypes = evtHandler.getParameterTypes();
-                Type[] genParmTypes = evtHandler.getGenericParameterTypes();
+                final ObjectNode evtNode = bs.read(data, bs.getDefaultType(), ObjectNode.class);
+                final ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
+                final String evtType = typeNode.getValue().toLowerCase();
+                
+                final MethodInfo evtHandler = service.eventHandlers.get(evtType);
+                
+                final ArrayNode argsNode = (ArrayNode) evtNode.get("args");
+                final Parameter[] parmTypes = evtHandler.getParameters().values().toArray(new Parameter[0]);
 
                 int argI = 0;
+                
                 Object[] args = new Object[parmTypes.length];
                 for (int i = 0; i < args.length; i++) {
-                    if (Client.class.isAssignableFrom(parmTypes[i])) {
+                    Parameter p = parmTypes[i];
+                    if (p.getType().inherits(Client.class)) {
                         args[i] = this;
                         continue;
                     }
                     SharkNode arg = argsNode.get(argI);
                     if (arg != null) {
-                        
-                        SharkType type = SharkType.get(parmTypes[i]);
-                        if (genParmTypes[i] != null) {
-                            type = SharkType.get(parmTypes[i],genParmTypes[i]);
-                        }
-                        args[i] = _service.bs.readAsValue(arg, type);
+                        args[i] = bs.readAsValue(arg, p.getType());
                     }
                     argI++;
                 }
@@ -145,19 +147,19 @@ public final class SocketService<T extends SocketService.Client> {
         }
 
         public SocketService<T> getService() {
-            return _service;
+            return service;
         }
         
         
         public final void broadcast(String evt,Object ... args) {
-            _service.broadcast(this,evt, args);
+            service.broadcast(this,evt, args);
         }
         public final void send(T c,String evt,Object ... args) {
-            _service.send(c,new Event(evt, args));
+            service.send(c,new Event(evt, args));
         }
         
         public final void reply(String evt,Object ... args) {
-            _service.send(this,new Event(evt, args));
+            service.send(this,new Event(evt, args));
         }
 
         public void handleException(Throwable ex) {
@@ -166,7 +168,7 @@ public final class SocketService<T extends SocketService.Client> {
         }
 
         public void onClose(int closeCode, String message) {
-            _service.clients.remove(this);
+            service.clients.remove(this);
         }
     }
 

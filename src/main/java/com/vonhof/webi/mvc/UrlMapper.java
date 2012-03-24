@@ -1,7 +1,7 @@
 package com.vonhof.webi.mvc;
 
+import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.webi.HttpMethod;
-import java.lang.reflect.Method;
 
 /**
  * Url mappers are used to control the REST web service handler
@@ -25,7 +25,7 @@ public interface UrlMapper {
      * @param method
      * @return 
      */
-    public Method getMethodByURL(String path,HttpMethod method);
+    public MethodInfo getMethodByURL(String path,HttpMethod method);
     /**
      * Get previously exposed object instance from path
      * @param path
