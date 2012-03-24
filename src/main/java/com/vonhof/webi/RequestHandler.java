@@ -5,7 +5,7 @@ import javax.servlet.ServletException;
 
 /**
  * Request handlers are the main handlers in webi.
- * @author Henrik Hofmeister <hh@cphse.com>
+ * @author Henrik Hofmeister <@vonhofdk>
  */
 public interface RequestHandler {
     /**

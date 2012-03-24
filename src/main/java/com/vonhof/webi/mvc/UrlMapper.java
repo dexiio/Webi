@@ -5,7 +5,7 @@ import com.vonhof.webi.HttpMethod;
 
 /**
  * Url mappers are used to control the REST web service handler
- * @author Henrik Hofmeister <hh@cphse.com>
+ * @author Henrik Hofmeister <@vonhofdk>
  */
 public interface UrlMapper {
     /**
