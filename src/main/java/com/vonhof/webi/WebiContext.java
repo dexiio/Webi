@@ -1,5 +1,7 @@
 package com.vonhof.webi;
 
+import com.vonhof.webi.session.SessionHandler;
+import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -17,14 +19,27 @@ public final class WebiContext {
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
     private final GETMap GETMap;
+    private final WebiSession session;
     private String responseType = "text/plain";
     
-    public WebiContext(String path, HttpServletRequest request, HttpServletResponse response) {
+    protected WebiContext(String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
         this.path = path;
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
         GETMap = new GETMap(request.getParameterMap());
+        
+        WebiSession session = null;
+        if (resolver != null) {
+            session = resolver.handle(this);
+        }
+        if (session == null)
+            session = new WebiSession();
+        this.session = session;
+    }
+
+    public WebiSession getSession() {
+        return session;
     }
 
     public HttpServletRequest getRequest() {

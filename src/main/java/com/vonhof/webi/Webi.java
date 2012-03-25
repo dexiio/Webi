@@ -2,6 +2,8 @@ package com.vonhof.webi;
 
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
+import com.vonhof.webi.session.SessionHandler;
+import com.vonhof.webi.session.WebiSession;
 import com.vonhof.webi.websocket.SocketService;
 import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
@@ -35,6 +37,11 @@ public final class Webi {
      * Filter map
      */
     private final PathPatternMap<Filter> filters = new PathPatternMap<Filter>();
+    
+    /**
+     * Filter map
+     */
+    private final PathPatternMap<SessionHandler> sessionHandlers = new PathPatternMap<SessionHandler>();
     
     
     /**
@@ -128,6 +135,17 @@ public final class Webi {
         beanContext.add(service);
         return service;
     }
+    
+    /**
+     * Add session resolver at path
+     * @param path
+     * @param handler 
+     */
+    public <T extends SessionHandler> T  add(String path,T handler) {
+        sessionHandlers.put(path, handler);
+        beanContext.add(handler);
+        return handler;
+    }
 
     public void addBean(Object bean) {
         beanContext.add(bean);
@@ -135,6 +153,10 @@ public final class Webi {
     
     public <T> T getBean(Class<T> clz) {
         return beanContext.get(clz);
+    }
+
+    public void addBean(String id, Object obj) {
+        beanContext.add(id,obj);
     }
     
     /**
@@ -151,11 +173,16 @@ public final class Webi {
                 throws IOException, ServletException {
             
             RequestHandler handler = requestHandlers.get(path);
+            
+            //Hack for path - make a proper normalization process for paths
             if (handler != null) {
                 path = requestHandlers.trimContext(path);
             }
             
-            final WebiContext wr = new WebiContext(path, request, response);
+            final SessionHandler sessionResolver = sessionHandlers.get(path);
+            
+            final WebiContext wr = new WebiContext(path,request,response,
+                                                   sessionResolver);
             
             for(Filter filter:filters.getAll(path)) {
                 if (!filter.apply(wr))

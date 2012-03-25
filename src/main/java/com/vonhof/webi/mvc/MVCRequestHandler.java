@@ -12,6 +12,7 @@ import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
+import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -76,24 +77,7 @@ public class MVCRequestHandler implements RequestHandler {
             ctxt.sendError(ex);
         }
     }
-    
-    public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
-        WebiContext ctxt = new WebiContext(request.getPathInfo(),request, null);
-        ctxt.setResponseType(protocol);
-        try {
-            Object out = invokeAction(ctxt);
-            if (out instanceof WebSocket)
-                return (WebSocket) out;
-            else
-                throw new HttpException(HttpException.INTERNAL_ERROR,
-                        "Wrong return type for websocket method");
-            
-        } catch (HttpException ex) {
-            Logger.getLogger(MVCRequestHandler.class.getName()).
-                    log(Level.SEVERE, null, ex);
-        }
-        return null;
-    }
+
 
     /**
      * Invoke action based on path and http method
@@ -195,6 +179,13 @@ public class MVCRequestHandler implements RequestHandler {
             case INJECT:
                 value = webi.getBean(p.getType().getType());
                 break;
+            case SESSION:
+                value = req.getSession().get(name);
+                if (!p.getType().isAssignableFrom(value.getClass())) {
+                    value = req.getSession().get(p.getType().getName());
+                }
+                
+                break;
             default:
                 if (p.hasAnnotation(Body.class)) {
                     value = readBODYParm(req,p);
@@ -210,6 +201,11 @@ public class MVCRequestHandler implements RequestHandler {
                 }
                 if (p.getType().inherits(WebiContext.class)) {
                     value = req;
+                    break;
+                }
+                
+                if (p.getType().inherits(WebiSession.class)) {
+                    value = req.getSession();
                     break;
                 }
 
