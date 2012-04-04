@@ -11,8 +11,8 @@ import org.apache.commons.codec.digest.DigestUtils;
  * Default implementation of a session handler. Uses cookies
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class CookieSessionHandler implements SessionHandler {
-    private final Map<String,WebiSession> sessions = new HashMap<String, WebiSession>();
+public class CookieSessionHandler<T extends WebiSession> implements SessionHandler {
+    private final Map<String,T> sessions = new HashMap<String, T>();
     
     private final String cookieName;
     private int maxAge = 3600;
@@ -21,15 +21,19 @@ public class CookieSessionHandler implements SessionHandler {
         this.cookieName = cookieName;
     }
 
-    public WebiSession handle(WebiContext ctxt) {
+    public String getCookieName() {
+        return cookieName;
+    }
+
+    public T handle(WebiContext ctxt) {
         Cookie[] cookies = ctxt.getRequest().getCookies();
-        WebiSession out = null;
-        String cookieValue = null;;
+        T out = null;
+        String cookieValue = null;
         for(Cookie c:cookies) {
             String name = c.getName();
             if (name.equalsIgnoreCase(cookieName)) {
                 cookieValue = c.getValue();
-                WebiSession session = sessions.get(cookieValue);
+                T session = sessions.get(cookieValue);
                 if (session != null) {
                     out = session;
                 }
@@ -41,8 +45,8 @@ public class CookieSessionHandler implements SessionHandler {
             cookieValue = DigestUtils.md5Hex(new Date().toString());
         }
         if (out == null) {
-            out = new WebiSession();
-            sessions.put(cookieName, out);
+            out = newSession(cookieValue);
+            add(cookieValue, out);
         }
         Cookie cookie = new Cookie(cookieName, cookieValue);
         cookie.setMaxAge(maxAge);
@@ -50,6 +54,18 @@ public class CookieSessionHandler implements SessionHandler {
         if (ctxt.getResponse() != null)
             ctxt.getResponse().addCookie(cookie);
         return out;
+    }
+    
+    public T newSession(String sessionKey) {
+        return (T) new WebiSession();
+    }
+    
+    public void add(String sessionKey,T session) {
+        sessions.put(sessionKey, session);
+    }
+    
+    public void remove(String sessionKey) {
+        sessions.remove(sessionKey);
     }
 
 }

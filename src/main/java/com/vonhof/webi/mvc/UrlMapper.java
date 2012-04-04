@@ -2,6 +2,8 @@ package com.vonhof.webi.mvc;
 
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.webi.HttpMethod;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Url mappers are used to control the REST web service handler
@@ -32,4 +34,10 @@ public interface UrlMapper {
      * @return 
      */
     public Object getObjectByURL(String path);
+    
+    /**
+     * Get all registered paths and methods
+     * @return 
+     */
+    public Map<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> getMethods();
 }

@@ -89,7 +89,7 @@ public final class Webi {
      * @throws Exception 
      */
     public void start() throws Exception {
-        beanContext.inject();
+        beanContext.inject(true);
         server.setHandler(new Handler());
         server.start();
         server.join();
@@ -158,6 +158,9 @@ public final class Webi {
     public void addBean(String id, Object obj) {
         beanContext.add(id,obj);
     }
+    public <T> void addBean(Class<T> clz, T obj) {
+        beanContext.add(clz,obj);
+    }
     
     /**
      * Internal webi jetty handler
@@ -174,12 +177,14 @@ public final class Webi {
             
             RequestHandler handler = requestHandlers.get(path);
             
+            final SessionHandler sessionResolver = sessionHandlers.get(path);
+            
             //Hack for path - make a proper normalization process for paths
             if (handler != null) {
                 path = requestHandlers.trimContext(path);
             }
             
-            final SessionHandler sessionResolver = sessionHandlers.get(path);
+            
             
             final WebiContext wr = new WebiContext(path,request,response,
                                                    sessionResolver);

@@ -42,16 +42,22 @@ public class BeanContext {
     }
     
     public void inject() {
+        inject(false);
+    }
+    public void inject(boolean required) {
         for(Entry<Class,Object> entry:beansByClass.entrySet()) {
-            inject(entry.getValue());
+            inject(entry.getValue(),required);
         }
         
         for(Entry<String,Object> entry:beansById.entrySet()) {
-            inject(entry.getValue());
+            inject(entry.getValue(),required);
         }
     }
     
     public void inject(Object obj) {
+        inject(obj, false);
+    }
+    public void inject(Object obj,boolean required) {
         ClassInfo<?> clz = ClassInfo.from(obj.getClass());
         Map<String,FieldInfo> fields = clz.getFields();
         boolean injectedAll = true;
@@ -74,7 +80,13 @@ public class BeanContext {
                         f.set(obj, bean);
                     } else {
                         injectedAll = false;
-                        LOG.log(Level.WARNING,"No bean registered for class: {0}",f.getType().getName());
+                        String msg = String.format("No bean registered for class: %s in %s",
+                                                            f.getType().getName(),
+                                                            obj.getClass().getName());
+                        if (required)
+                            throw new RuntimeException(msg);
+                        else
+                            LOG.log(Level.WARNING,msg);
                     }
                 }
             } catch (Throwable ex) {

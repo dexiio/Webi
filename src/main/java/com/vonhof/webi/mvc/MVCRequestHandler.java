@@ -6,29 +6,24 @@ import com.vonhof.babelshark.exception.MappingException;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
-import com.vonhof.webi.HttpException;
-import com.vonhof.webi.RequestHandler;
-import com.vonhof.webi.Webi;
-import com.vonhof.webi.WebiContext;
+import com.vonhof.webi.*;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
+import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import org.eclipse.jetty.websocket.WebSocket;
 
 /**
  * MVC request handling.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class MVCRequestHandler implements RequestHandler {
+public class MVCRequestHandler implements RequestHandler,AfterInject {
     
     @Inject
     private Webi webi;
@@ -62,10 +57,19 @@ public class MVCRequestHandler implements RequestHandler {
             
             setResponseType(ctxt);
             
+            ctxt.setHeader("Access-Control-Allow-Origin", "*");
+            ctxt.setHeader("Access-Control-Allow-Headers", "*");
+            
+            if (ctxt.getMethod().equals(HttpMethod.OPTIONS)) {
+                ctxt.flushBuffer();
+                return;
+            }
             //Invoke REST method
             Object output = invokeAction(ctxt);
             
             ctxt.setHeader("Content-type", ctxt.getResponseType());
+            
+            
             final Output out = new Output(ctxt.getOutputStream(),ctxt.getResponseType());
             try {
                 bs.write(out,output);
@@ -111,6 +115,10 @@ public class MVCRequestHandler implements RequestHandler {
             
             //Refine value before outputting
             return refineValue(output,method.getReturnType());
+        } catch (InvocationTargetException ex) {
+            if (ex.getTargetException() instanceof HttpException)
+                throw (HttpException)ex.getTargetException();
+            throw new HttpException(HttpException.INTERNAL_ERROR, ex);
         } catch (HttpException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -221,7 +229,7 @@ public class MVCRequestHandler implements RequestHandler {
         value = refineValue(value,p.getType());
         
         if (required && isMissing(value))
-            throw new HttpException(HttpException.CLIENT,"Bad request - missing required parameter: "+p.getName());
+            throw new HttpException(HttpException.BAD_REQUEST,"Bad request - missing required parameter: "+p.getName());
         
         return value;
     }
@@ -294,6 +302,10 @@ public class MVCRequestHandler implements RequestHandler {
      */
     private Object readGETParm(Parameter p, String[] values) throws Exception {
         return ConvertUtils.convertCollection(p.getType(),values);
+    }
+
+    public void afterInject() {
+        webi.addBean(UrlMapper.class,urlMapper);
     }
 
 }
