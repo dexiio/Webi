@@ -12,6 +12,6 @@ import java.lang.annotation.*;
 @Target(value={ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Path {
-    String value();
+    String value() default "";
     HttpMethod method() default HttpMethod.GET;
 }

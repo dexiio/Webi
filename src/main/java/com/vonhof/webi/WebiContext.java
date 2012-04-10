@@ -124,16 +124,23 @@ public final class WebiContext {
      */
     public void sendError(Throwable ex) throws IOException {
         String error = toString(ex);
-        System.out.println(error);
+        boolean showTrace = true;
         
         if (!response.isCommitted()) {
             if (ex instanceof HttpException) {
-                response.setStatus(((HttpException)ex).getCode());
+                int code = ((HttpException)ex).getCode();
+                response.setStatus(code);
+                if (code == 404)
+                    showTrace = false;
+                    
             } else {
                 response.setStatus(500);
             }
             response.setHeader("Content-type", "text/plain");
-            getOutputStream().write(error.getBytes());
+            if (showTrace) {
+                System.out.println(error);
+                getOutputStream().write(error.getBytes());
+            }
             response.flushBuffer();
         }
     }

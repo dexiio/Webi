@@ -4,6 +4,7 @@ import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.webi.HttpMethod;
+import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.bean.BeanContext;
 import java.util.EnumMap;
@@ -37,7 +38,7 @@ public class DefaultUrlMapper implements UrlMapper {
         
         ClassInfo<?> classInfo = ClassInfo.from(obj.getClass());
         for (MethodInfo m : classInfo.getMethods()) {
-            if (!m.isPublic() || m.hasAnnotation(Ignore.class))
+            if (!m.isPublic() || m.hasAnnotation(Ignore.class) || m.hasAnnotation(Handler.class))
                 continue;
             
             Path path = m.getAnnotation(Path.class);
@@ -59,8 +60,8 @@ public class DefaultUrlMapper implements UrlMapper {
 
     protected String getMethodURL(MethodInfo m) {
         Path path = m.getAnnotation(Path.class);
-        if (path != null) {
-            return path.value();
+        if (path != null && !path.value().isEmpty()) {
+            return path.value().toLowerCase();
         }
         return m.getName().toLowerCase();
     }

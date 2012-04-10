@@ -8,6 +8,7 @@ import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.*;
 import com.vonhof.webi.annotation.Body;
+import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.session.WebiSession;
@@ -100,6 +101,19 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
             if (obj == null) {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
+            final ClassInfo<?> info = ClassInfo.from(obj.getClass());
+            
+            
+            //Get handlers
+            List<MethodInfo> handlers = info.getMethodsByAnnotation(Handler.class);
+            
+            //Invoke before request handlers
+            for(MethodInfo handler:handlers) {
+                Handler annotation = handler.getAnnotation(Handler.class);
+                if (annotation.value().equals(Handler.Type.BEFORE_REQUEST)) {
+                    invoke(obj, handler, req);
+                }
+            }
             
             //Get method
             MethodInfo method = urlMapper.getMethodByURL(path, req.getMethod());
@@ -107,18 +121,23 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
 
-            //Resolve method argumetns from request
-            final Object[] callParms = getMethodArguments(req,method);
+            //Invoke controller method
+            Object output =  invoke(obj, method, req);
             
-            //Invoke method
-            Object output = method.invoke(obj, callParms);
+            //Invoke after request handlers
+            for(MethodInfo handler:handlers) {
+                Handler annotation = handler.getAnnotation(Handler.class);
+                if (annotation.value().equals(Handler.Type.AFTER_REQUEST)) {
+                    invoke(obj, handler, req);
+                }
+            }
             
-            //Refine value before outputting
-            return refineValue(output,method.getReturnType());
+            return output;
+            
         } catch (InvocationTargetException ex) {
             if (ex.getTargetException() instanceof HttpException)
                 throw (HttpException)ex.getTargetException();
-            throw new HttpException(HttpException.INTERNAL_ERROR, ex);
+            throw new HttpException(HttpException.INTERNAL_ERROR, ex.getTargetException());
         } catch (HttpException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -136,6 +155,17 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
         }
         //Set response type
         ctxt.setResponseType(bs.getMimeType(format,true));
+    }
+    
+    private Object invoke(Object obj,MethodInfo method,WebiContext req) throws Exception {
+        //Resolve method argumetns from request
+        final Object[] callParms = getMethodArguments(req,method);
+
+        //Invoke method
+        Object output = method.invoke(obj, callParms);
+
+        //Refine value before outputting
+        return refineValue(output,method.getReturnType());
     }
 
     /**

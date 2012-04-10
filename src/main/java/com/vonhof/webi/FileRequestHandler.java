@@ -57,7 +57,9 @@ public class FileRequestHandler implements RequestHandler {
             serveFile(ctxt, file);;
         } else {
             ctxt.sendError(new HttpException(HttpException.NOT_FOUND,"Not found"));
-            System.out.println("File not found:"+filePath);
+            if (!file.getName().equalsIgnoreCase("favicon.ico")) {
+                System.out.println("File not found:"+filePath);
+            }
         }
     }
     
