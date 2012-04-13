@@ -15,10 +15,18 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
     private final Map<String,T> sessions = new HashMap<String, T>();
     
     private final String cookieName;
+    private final String basePath;
     private int maxAge = 3600;
-
-    public CookieSessionHandler(String cookieName) {
+    
+    
+    
+    public CookieSessionHandler(String basePath,String cookieName) {
+        this.basePath = basePath;
         this.cookieName = cookieName;
+    }
+
+    public String getBasePath() {
+        return basePath;
     }
 
     public String getCookieName() {
@@ -50,6 +58,7 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         }
         Cookie cookie = new Cookie(cookieName, cookieValue);
         cookie.setMaxAge(maxAge);
+        cookie.setPath(getBasePath());
         
         if (ctxt.getResponse() != null)
             ctxt.getResponse().addCookie(cookie);

@@ -8,4 +8,5 @@ import com.vonhof.webi.WebiContext;
  */
 public interface SessionHandler {
     public WebiSession handle(WebiContext ctxt);
+    public String getBasePath();
 }

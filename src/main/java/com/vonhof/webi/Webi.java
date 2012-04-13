@@ -141,8 +141,8 @@ public final class Webi {
      * @param path
      * @param handler 
      */
-    public <T extends SessionHandler> T  add(String path,T handler) {
-        sessionHandlers.put(path, handler);
+    public <T extends SessionHandler> T  add(T handler) {
+        sessionHandlers.put(handler.getBasePath(), handler);
         beanContext.add(handler);
         return handler;
     }
@@ -175,6 +175,9 @@ public final class Webi {
                 HttpServletResponse response)
                 throws IOException, ServletException {
             
+            PathPattern basePattern = requestHandlers.getPattern(path);
+            String basePath = basePattern != null ? basePattern.toString() : "/";
+            
             RequestHandler handler = requestHandlers.get(path);
             
             final SessionHandler sessionResolver = sessionHandlers.get(path);
@@ -184,9 +187,8 @@ public final class Webi {
                 path = requestHandlers.trimContext(path);
             }
             
-            
-            
-            final WebiContext wr = new WebiContext(path,request,response,
+            final WebiContext wr = new WebiContext(basePath,path,
+                                                    request,response,
                                                    sessionResolver);
             
             for(Filter filter:filters.getAll(path)) {

@@ -31,10 +31,12 @@ import javax.servlet.http.HttpServletResponse;
 public class WebiController {
 
     @Inject
-    UrlMapper urlMapper;
-
-    public ObjectNode service() {
+    private UrlMapper urlMapper;
+    
+    public ObjectNode service(WebiContext ctxt) {
         ObjectNode out = new ObjectNode();
+        out.put("url",ctxt.getBase());
+        
 
         //Generate output for methods/actions
         List<ClassInfo> models = new ArrayList<ClassInfo>();

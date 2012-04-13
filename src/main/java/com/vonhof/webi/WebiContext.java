@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
  */
 public final class WebiContext {
     private final String path;
+    private final String base;
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
@@ -22,20 +23,21 @@ public final class WebiContext {
     private final WebiSession session;
     private String responseType = "text/plain";
     
-    protected WebiContext(String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
+    protected WebiContext(String base,String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
+        this.base = base;
         this.path = path;
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
         GETMap = new GETMap(request.getParameterMap());
         
-        WebiSession session = null;
+        WebiSession s = null;
         if (resolver != null) {
-            session = resolver.handle(this);
+            s = resolver.handle(this);
         }
-        if (session == null)
-            session = new WebiSession();
-        this.session = session;
+        if (s == null)
+            s = new WebiSession();
+        this.session = s;
     }
 
     public WebiSession getSession() {
@@ -49,10 +51,17 @@ public final class WebiContext {
     public HttpServletResponse getResponse() {
         return response;
     }
-    
 
     /**
-     * Get requested path
+     * Get base path
+     * @return 
+     */
+    public String getBase() {
+        return base;
+    }
+
+    /**
+     * Get requested path without the base path
      * @return 
      */
     public String getPath() {
