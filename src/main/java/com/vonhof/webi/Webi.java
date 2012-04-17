@@ -7,6 +7,7 @@ import com.vonhof.webi.session.WebiSession;
 import com.vonhof.webi.websocket.SocketService;
 import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -135,6 +136,15 @@ public final class Webi {
         beanContext.add(service);
         return service;
     }
+
+    /**
+     * Get websocket services
+     * @return 
+     */
+    public PathPatternMap<SocketService> getWebSockets() {
+        return webSockets;
+    }
+    
     
     /**
      * Add session resolver at path

@@ -19,7 +19,7 @@ import java.util.logging.Logger;
 import javax.inject.Inject;
 import org.eclipse.jetty.websocket.WebSocket;
 
-public final class SocketService<T extends SocketService.Client> {
+public class SocketService<T extends SocketService.Client> {
 
     @Inject
     private BabelSharkInstance bs;
@@ -27,10 +27,14 @@ public final class SocketService<T extends SocketService.Client> {
     private final ConcurrentLinkedQueue<Client> clients = new ConcurrentLinkedQueue<Client>();
     private final Map<String, MethodInfo> eventHandlers = new HashMap<String, MethodInfo>();
     private final ClassInfo<T> clientClass;
-
+    
     public SocketService(Class<T> clientClass) {
         this.clientClass = ClassInfo.from(clientClass);
         readEventHandlers();
+    }
+
+    public ClassInfo<T> getClientClass() {
+        return clientClass;
     }
     
     
@@ -95,6 +99,7 @@ public final class SocketService<T extends SocketService.Client> {
     
     public T newClient() throws Exception {
         Client client = clientClass.newInstance();
+        client.service = this;
         return (T) client;
     }
 
@@ -158,7 +163,7 @@ public final class SocketService<T extends SocketService.Client> {
             service.send(c,new Event(evt, args));
         }
         
-        public final void reply(String evt,Object ... args) {
+        public final void send(String evt,Object ... args) {
             service.send(this,new Event(evt, args));
         }
 

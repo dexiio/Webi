@@ -10,11 +10,14 @@ import com.vonhof.babelshark.reflect.FieldInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpMethod;
+import com.vonhof.webi.PathPatternMap;
+import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.session.WebiSession;
+import com.vonhof.webi.websocket.SocketService;
 import java.util.*;
 import java.util.Map.Entry;
 import javax.inject.Inject;
@@ -33,10 +36,26 @@ public class WebiController {
     @Inject
     private UrlMapper urlMapper;
     
+    @Inject 
+    private Webi webi;
+    
     public ObjectNode service(WebiContext ctxt) {
         ObjectNode out = new ObjectNode();
         out.put("url",ctxt.getBase());
         
+        //Generate web socket service information
+        ObjectNode socketsNode = out.putObject("sockets");
+        for(Entry<String,SocketService> service:webi.getWebSockets().entrySet()) {
+            ClassInfo<?> classInfo = service.getValue().getClientClass();
+            String name = "";
+            if (classInfo.hasAnnotation(Name.class))
+                name = classInfo.getAnnotation(Name.class).value();
+            if (name.isEmpty())
+                name = classInfo.getType().getSimpleName().toLowerCase();
+            ObjectNode socketNode = socketsNode.putObject(name);
+            socketNode.put("url", service.getKey());
+            socketNode.put("type", classInfo.getName());
+        }
 
         //Generate output for methods/actions
         List<ClassInfo> models = new ArrayList<ClassInfo>();

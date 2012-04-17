@@ -1,16 +1,13 @@
 package com.vonhof.webi;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
  * Collection of path patterns
  * @author Henrik Hofmeister <@vonhofdk>
  */
-class PathPatternMap<T>  {
+public class PathPatternMap<T>  {
     private final Map<PathPattern,T> inner = new LinkedHashMap<PathPattern, T>();
     
     public void put(String path,T value) {
@@ -57,5 +54,13 @@ class PathPatternMap<T>  {
         if (pattern == null) 
             return path;
         return pattern.trim(path);
+    }
+    public Set<Entry<String,T>> entrySet() {
+        HashMap<String,T> map = new HashMap<String, T>();
+        for(Entry<PathPattern,T> entry:inner.entrySet()) {
+            map.put(entry.getKey().toString(),entry.getValue());
+        }
+                
+        return map.entrySet();
     }
 }

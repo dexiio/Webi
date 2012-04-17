@@ -1,5 +1,6 @@
 package com.vonhof.webi.bean;
 
+import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.FieldInfo;
 import java.util.HashMap;
@@ -63,13 +64,12 @@ public class BeanContext {
         boolean injectedAll = true;
         for(FieldInfo f:fields.values()) {
             Inject annotation = f.getAnnotation(Inject.class);
-            if (annotation == null) 
-                continue;
             
             f.forceAccessible();
             try {
                 Object value = f.get(obj);
-                if (value == null) {
+                if (annotation != null 
+                        && value == null) {
                     Object bean = get(f.getName());
                     if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
                         bean = null;
@@ -88,6 +88,13 @@ public class BeanContext {
                         else
                             LOG.log(Level.WARNING,msg);
                     }
+                }
+                
+                if (value != null 
+                        && ReflectUtils.isBean(value.getClass())
+                        && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
+                    //Recurse
+                    inject(value, required);
                 }
             } catch (Throwable ex) {
                 LOG.log(Level.SEVERE, null, ex);

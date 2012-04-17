@@ -4,7 +4,7 @@ package com.vonhof.webi;
  * Path patterns are used to identify paths
  * @author Henrik Hofmeister <@vonhofdk>
  */
-class PathPattern {
+public class PathPattern {
     private final String ptrn;
 
     public PathPattern(String expression) {

@@ -149,7 +149,7 @@ public class WebiServer {
         public void onOpen(Connection connection) {
             super.onOpen(connection);
             broadcast("entered", this);
-            reply("ready");
+            send("ready");
         }
 
         @Override

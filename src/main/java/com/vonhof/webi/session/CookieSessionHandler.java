@@ -69,6 +69,10 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         return (T) new WebiSession();
     }
     
+    public T get(String sessionKey) {
+        return sessions.get(sessionKey);
+    }
+    
     public void add(String sessionKey,T session) {
         sessions.put(sessionKey, session);
     }
