@@ -59,7 +59,7 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
             setResponseType(ctxt);
             
             ctxt.setHeader("Access-Control-Allow-Origin", "*");
-            ctxt.setHeader("Access-Control-Allow-Headers", "*");
+            ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept");
             
             if (ctxt.getMethod().equals(HttpMethod.OPTIONS)) {
                 ctxt.flushBuffer();
