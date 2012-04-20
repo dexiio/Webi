@@ -101,6 +101,8 @@ public class FileRequestHandler implements RequestHandler {
      */
     protected void serveFile(WebiContext req,File file) throws IOException {
         req.setHeader("Content-type",getResponseType(file));
+        req.setDateHeader("Last-Modified",file.lastModified());
+        
 
         FileInputStream fileIn = new FileInputStream(file);
         while(fileIn.available() > 0) {

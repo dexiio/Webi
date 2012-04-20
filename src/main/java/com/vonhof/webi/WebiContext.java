@@ -189,6 +189,14 @@ public final class WebiContext {
         response.setHeader(name, value);
     }
     
+    public void setDateHeader(String name,long timestamp) {
+        response.setDateHeader(name, timestamp);
+    }
+    
+    public void setIntHeader(String name,int value) {
+        response.setIntHeader(name, value);
+    }
+    
     /**
      * Flush response buffer
      * @throws IOException 
