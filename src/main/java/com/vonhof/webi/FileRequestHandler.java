@@ -103,7 +103,6 @@ public class FileRequestHandler implements RequestHandler {
         req.setHeader("Content-type",getResponseType(file));
         req.setDateHeader("Last-Modified",file.lastModified());
         
-
         FileInputStream fileIn = new FileInputStream(file);
         while(fileIn.available() > 0) {
             req.getOutputStream().write(fileIn.read());
