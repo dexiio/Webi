@@ -81,7 +81,7 @@ public final class WebiContext {
      * @return 
      */
     public String getRequestType() {
-        return request.getContentType();
+        return request.getContentType().replaceAll("(?uis); *charset=.*$","");
     }
 
     /**
