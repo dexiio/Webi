@@ -18,11 +18,13 @@ import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.session.WebiSession;
 import com.vonhof.webi.websocket.SocketService;
+import java.lang.reflect.Type;
 import java.util.*;
 import java.util.Map.Entry;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import sun.reflect.generics.reflectiveObjects.ParameterizedTypeImpl;
 
 /**
  * Various Webi specific methods
@@ -122,14 +124,18 @@ public class WebiController {
                         enumNode.add((Enum)val);
                     }
                 } else if (type.isCollection()) {
-                    ClassInfo genType = ClassInfo.from((Class) type.getGenericTypes()[0]);
+                    ClassInfo<?> genType = ClassInfo.from(Object.class);
+                    if (type.getGenericTypes().length > 0) {
+                        genType = getGenType(type.getGenericTypes()[0]);
+                    }
+                    
                     String typeName = getTypeName(genType);
                     if (modelsNode.get(typeName) != null) return;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
                     writeModel(modelsNode,subModelNode, genType);
                     return;
                 } else if (type.isMap()) {
-                    ClassInfo genType = ClassInfo.from((Class) type.getGenericTypes()[1]);
+                    ClassInfo<?> genType = getMapParm(type);
                     String typeName = getTypeName(genType);
                     if (modelsNode.get(typeName) != null) return;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
@@ -142,17 +148,43 @@ public class WebiController {
             }
         }
     }
+    
+    private ClassInfo<?> getMapParm(ClassInfo<?> type) {
+        if (type.isMap()) {
+            Type parmType = type.getGenericTypes()[1];
+            return getGenType(parmType);
+        }
+        return ClassInfo.from(Object.class);
+    }
+    
+    private ClassInfo<?> getGenType(Type parmType) {
+        
+        if (parmType instanceof Class) {
+            Class genType = (Class)parmType;
+            return ClassInfo.from(genType);
+        } else if (parmType instanceof ParameterizedTypeImpl) {
+            ParameterizedTypeImpl genType = (ParameterizedTypeImpl)parmType;
+            Class<?> rawType = genType.getRawType();
+            return ClassInfo.from(rawType);
+        }
+        return ClassInfo.from(Object.class);
+    }
     private String getTypeName(ClassInfo<?> type) {
         if (type.isArray()) {
             return getTypeName(ClassInfo.from(type.getComponentType()))+"[]";
         }
         if (type.isCollection()) {
-            Class genType = ((Class)type.getGenericTypes()[0]);
-            return getTypeName(ClassInfo.from(genType))+"[]";
+            if (type.getGenericTypes().length > 0) {
+                ClassInfo<?> genType = getGenType(type.getGenericTypes()[0]);
+                return getTypeName(genType)+"[]";
+            } else {
+                return "Object[]";
+            }
+            
         }
         if (type.isMap()) {
-            Class genType = ((Class)type.getGenericTypes()[1]);
-            return "Map<String,"+getTypeName(ClassInfo.from(genType))+">";
+            ClassInfo<?> mapParm = getMapParm(type);
+            return "Map<String,"+getTypeName(mapParm)+">";
         }
         
         Name nameAnno = type.getAnnotation(Name.class);
