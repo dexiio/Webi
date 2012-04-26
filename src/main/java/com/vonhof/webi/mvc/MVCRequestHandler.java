@@ -208,7 +208,7 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                 break;
             case HEADER:
                 String headerValue = req.getHeader(name);
-                if (ReflectUtils.isPrimitive(p.getType().getType())) {
+                if (ReflectUtils.isSimple(p.getType().getType())) {
                     value = ConvertUtils.convert(headerValue, p.getType().getType());
                 } else {
                     value = headerValue;

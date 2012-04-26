@@ -54,6 +54,11 @@ public final class Webi {
      * Jetty server instance
      */
     private final Server server;
+    
+    /**
+     * Dev mode disables various caching to allow for easier development.
+     */
+    private boolean devMode = false;;
 
     /**
      * Setup webi server on specified port
@@ -81,6 +86,20 @@ public final class Webi {
         beanContext.add(this);
         beanContext.add(server);
         beanContext.add(BabelShark.getDefaultInstance());
+    }
+
+    /**
+     *  disable dev mode
+     */
+    public boolean isDevMode() {
+        return devMode;
+    }
+
+    /**
+     *  Enable dev mode
+     */
+    public void setDevMode(boolean debugMode) {
+        this.devMode = debugMode;
     }
     
 

@@ -139,7 +139,7 @@ public class SocketService<T extends SocketService.Client> {
                     }
                     SharkNode arg = argsNode.get(argI);
                     if (arg != null) {
-                        args[i] = bs.readAsValue(arg, p.getType());
+                        args[i] = bs.read(arg, p.getType());
                     }
                     argI++;
                 }

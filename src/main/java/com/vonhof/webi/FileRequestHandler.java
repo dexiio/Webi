@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import javax.inject.Inject;
 import javax.servlet.ServletException;
 
 /**
@@ -12,6 +13,9 @@ import javax.servlet.ServletException;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class FileRequestHandler implements RequestHandler {
+    
+    @Inject
+    private Webi webi;
     
     /**
      * Mime type map
@@ -101,7 +105,8 @@ public class FileRequestHandler implements RequestHandler {
      */
     protected void serveFile(WebiContext req,File file) throws IOException {
         req.setHeader("Content-type",getResponseType(file));
-        req.setDateHeader("Last-Modified",file.lastModified());
+        if (!webi.isDevMode())
+            req.setDateHeader("Last-Modified",file.lastModified());
         
         FileInputStream fileIn = new FileInputStream(file);
         while(fileIn.available() > 0) {
