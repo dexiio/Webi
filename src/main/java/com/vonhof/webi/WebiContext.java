@@ -219,13 +219,20 @@ public final class WebiContext {
             this.inner = inner;
         }
         public String get(String name) {
+            return get(name, null);
+        }
+        public String get(String name,String defaultValue) {
             String[] values = inner.get(name);
             if (values != null && values.length > 0)
                 return values[0];
-            return null;
+            return defaultValue;
         }
         public String[] getAll(String name) {
             return inner.get(name);
+        }
+
+        public boolean contains(String name) {
+            return inner.containsKey(name);
         }
     
     }

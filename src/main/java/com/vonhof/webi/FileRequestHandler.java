@@ -179,6 +179,10 @@ public class FileRequestHandler implements RequestHandler {
         out.addMimeType("json","application/json");
         out.addMimeType("xml","text/xml");
         out.addMimeType("js","text/javascript");
+        out.addMimeType("woff","application/x-font-woff");
+        out.addMimeType("ttf","font/ttf");
+        out.addMimeType("eot","font/eot");
+        out.addMimeType("otf","font/otf");
         
         return out;
     }

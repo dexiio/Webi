@@ -3,10 +3,14 @@ package com.vonhof.webi.mvc;
 import com.vonhof.babelshark.*;
 import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.exception.MappingException;
+import com.vonhof.babelshark.node.ObjectNode;
+import com.vonhof.babelshark.node.SharkNode;
+import com.vonhof.babelshark.node.SharkNode.NodeType;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.*;
+import com.vonhof.webi.WebiContext.GETMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Parm;
@@ -17,6 +21,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.Map.Entry;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 
@@ -178,8 +183,31 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
     private Object[] getMethodArguments(WebiContext req,MethodInfo method) throws Exception {
         List<Parameter> parms = new ArrayList<Parameter>(method.getParameters().values());
         final Object[] out = new Object[parms.size()];
+        
+        Map<Integer,Parameter> bodyParms = new HashMap<Integer,Parameter>();
         for (int i = 0; i < parms.size(); i++) {
-            out[i] = getMethodArgument(req, parms.get(i));
+            if (parms.get(i).hasAnnotation(Body.class)) {
+                bodyParms.put(i,parms.get(i));
+            } else {
+                out[i] = getMethodArgument(req, parms.get(i));
+            }
+        }
+        if (!bodyParms.isEmpty()) {
+            SharkNode body = readBody(req);
+            if (bodyParms.size() == 1) {
+                Entry<Integer, Parameter> entry = bodyParms.entrySet().iterator().next();
+                out[entry.getKey()] = bs.read(body, entry.getValue().getType());
+            } else if (body.is(NodeType.MAP)) {
+                ObjectNode obj = (ObjectNode) body;
+                for(Entry<Integer, Parameter> entry:bodyParms.entrySet()) {
+                    final String name = entry.getValue().getName();
+                    SharkNode val = obj.get(name);
+                    if (val == null)
+                        out[entry.getKey()] = null;
+                    else
+                        out[entry.getKey()] = bs.read(val, entry.getValue().getType());
+                }
+            }
         }
         return out;
     }
@@ -202,6 +230,8 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
 
         Object value = null;
         String name = p.getName();
+        int bodyPart = 0;
+        SharkNode body = null;
 
         switch (parmType) {
             case PATH:
@@ -226,8 +256,8 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                 break;
             default:
                 if (p.hasAnnotation(Body.class)) {
-                    value = readBODYParm(req,p);
-                    break;
+                    //Is handled outside this method while there could be more than 1
+                    return null;
                 }
                 if (p.getType().inherits(InputStream.class)) {
                     value = req.getInputStream();
@@ -244,6 +274,11 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                 
                 if (p.getType().inherits(WebiSession.class)) {
                     value = req.getSession();
+                    break;
+                }
+                
+                if (p.getType().inherits(GETMap.class)) {
+                    value = req.GET();
                     break;
                 }
 
@@ -319,8 +354,8 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
      * @return
      * @throws Exception 
      */
-    private Object readBODYParm(WebiContext req,Parameter p) throws Exception {
-        return bs.read(new Input(req.getInputStream(), req.getRequestType()), p.getType());
+    private SharkNode readBody(WebiContext req) throws Exception {
+        return bs.read(new Input(req.getInputStream(), req.getRequestType()), SharkNode.class);
     }
 
     /**
