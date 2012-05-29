@@ -190,6 +190,10 @@ public final class Webi {
     public <T> void addBean(Class<T> clz, T obj) {
         beanContext.add(clz,obj);
     }
+
+    public BeanContext getBeanContext() {
+        return beanContext;
+    }
     
     /**
      * Internal webi jetty handler
