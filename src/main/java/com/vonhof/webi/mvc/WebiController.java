@@ -1,10 +1,12 @@
 package com.vonhof.webi.mvc;
 
+import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.annotation.Name;
 import com.vonhof.babelshark.node.ArrayNode;
 import com.vonhof.babelshark.node.ObjectNode;
 import com.vonhof.babelshark.node.SharkNode;
+import com.vonhof.babelshark.node.SharkType;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.FieldInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
@@ -60,50 +62,53 @@ public class WebiController {
         }
 
         //Generate output for methods/actions
-        List<ClassInfo> models = new ArrayList<ClassInfo>();
+        List<SharkType> types = new ArrayList<SharkType>();
 
         ObjectNode methodsNode = out.putObject("methods");
         final Map<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> methods = urlMapper.getMethods();
         for (Entry<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> baseEntry : methods.entrySet()) {
             final String baseUrl = baseEntry.getKey();
             Object ctrl = urlMapper.getObjectByURL(baseUrl);
-            ObjectNode ctrlNode = methodsNode.putObject(getTypeName(ClassInfo.from(ctrl.getClass())));
+            ObjectNode ctrlNode = methodsNode.putObject(getTypeName(SharkType.get(ctrl.getClass())));
             ctrlNode.put("url", baseUrl);
             ObjectNode ctrlMethodsNode = ctrlNode.putObject("methods");
 
-            writeMethods(ctrlMethodsNode, baseEntry, baseUrl, models);
+            writeMethods(ctrlMethodsNode, baseEntry, baseUrl, types);
         }
 
         ObjectNode modelsNode = out.putObject("models");
 
-        for (ClassInfo<?> model : models) {
-            if (model.inherits(SharkNode.class) 
-                    || model.inherits(Collection.class)
-                    || model.inherits(Map.class)) 
+        for (SharkType type : types) {
+            if (type.inherits(SharkNode.class) 
+                    || type.isMap()
+                    || type.isCollection()) 
                 continue;
         
-            ObjectNode modelNode = modelsNode.putObject(getTypeName(model));
-            writeModel(modelsNode,modelNode, model);
+            ObjectNode modelNode = modelsNode.putObject(getTypeName(type));
+            writeModel(modelsNode,modelNode, type);
         }
 
         return out;
     }
 
-    private void writeModel(ObjectNode modelsNode, ObjectNode modelNode, ClassInfo<?> model) {
-        if (model.inherits(SharkNode.class) 
-                    || model.inherits(Collection.class)
-                    || model.inherits(Map.class)) 
+    private void writeModel(ObjectNode modelsNode, ObjectNode modelNode, final SharkType<?,?> type) {
+        if (type.inherits(SharkNode.class) 
+                    || type.inherits(Collection.class)
+                    || type.inherits(Map.class)) 
             return;
-        
-        for (FieldInfo field : model.getFields().values()) {
+        final ClassInfo<?> typeInfo = ClassInfo.from(type.getType());
+        for (final FieldInfo field : typeInfo.getFields().values()) {
             if (field.hasAnnotation(Ignore.class)) {
                 continue;
             }
-
+            
+            final ClassInfo fieldInfo = field.getType();
+            final SharkType fieldType = SharkType.get(fieldInfo);
+            
             Name nameAnno = field.getAnnotation(Name.class);
 
             ObjectNode fieldNode = modelNode.putObject(field.getName());
-            ClassInfo type = field.getType();
+            
             if (nameAnno != null) {
                 fieldNode.put("name", nameAnno.value());
                 fieldNode.put("description", nameAnno.description());
@@ -114,28 +119,26 @@ public class WebiController {
                 fieldNode.put("required", false);
             }
 
-            if (type.isPrimitive() || type.isCollection() || type.isMap()) {
-                fieldNode.put("type", getTypeName(type));
+            if (fieldType.isPrimitive() || fieldType.isCollection() || fieldType.isMap()) {
+                fieldNode.put("type", getTypeName(fieldType));
+                SharkType sharkType = fieldType;
                 
-                if (type.isEnum()) {
+                if (fieldInfo.isEnum()) {
                     fieldNode.put("type", "enum");
                     ArrayNode enumNode = fieldNode.putArray("enum");
-                    for(Object val:type.getEnumConstants()) {
+                    for(Object val:fieldInfo.getEnumConstants()) {
                         enumNode.add((Enum)val);
                     }
-                } else if (type.isCollection()) {
-                    ClassInfo<?> genType = ClassInfo.from(Object.class);
-                    if (type.getGenericTypes().length > 0) {
-                        genType = getGenType(type.getGenericTypes()[0]);
-                    }
+                } else if (fieldType.isCollection()) {
+                    SharkType genType = fieldType.getValueType();
                     
                     String typeName = getTypeName(genType);
                     if (modelsNode.get(typeName) != null) return;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
                     writeModel(modelsNode,subModelNode, genType);
                     return;
-                } else if (type.isMap()) {
-                    ClassInfo<?> genType = getMapParm(type);
+                } else if (fieldType.isMap()) {
+                    SharkType genType = fieldType.getValueType();
                     String typeName = getTypeName(genType);
                     if (modelsNode.get(typeName) != null) return;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
@@ -143,51 +146,26 @@ public class WebiController {
                     return;
                 }
             } else {
-                ObjectNode subModelNode = modelsNode.putObject(getTypeName(type));
-                writeModel(modelsNode,subModelNode, type);
+                ObjectNode subModelNode = modelsNode.putObject(getTypeName(fieldType));
+                writeModel(modelsNode,subModelNode, fieldType);
             }
         }
     }
     
-    private ClassInfo<?> getMapParm(ClassInfo<?> type) {
-        if (type.isMap()) {
-            Type parmType = type.getGenericTypes()[1];
-            return getGenType(parmType);
-        }
-        return ClassInfo.from(Object.class);
-    }
-    
-    private ClassInfo<?> getGenType(Type parmType) {
-        
-        if (parmType instanceof Class) {
-            Class genType = (Class)parmType;
-            return ClassInfo.from(genType);
-        } else if (parmType instanceof ParameterizedTypeImpl) {
-            ParameterizedTypeImpl genType = (ParameterizedTypeImpl)parmType;
-            Class<?> rawType = genType.getRawType();
-            return ClassInfo.from(rawType);
-        }
-        return ClassInfo.from(Object.class);
-    }
-    private String getTypeName(ClassInfo<?> type) {
+    private String getTypeName(SharkType<?,?> type) {
         if (type.isArray()) {
-            return getTypeName(ClassInfo.from(type.getComponentType()))+"[]";
+            return getTypeName(type.getValueType())+"[]";
         }
         if (type.isCollection()) {
-            if (type.getGenericTypes().length > 0) {
-                ClassInfo<?> genType = getGenType(type.getGenericTypes()[0]);
-                return getTypeName(genType)+"[]";
-            } else {
-                return "Object[]";
-            }
+            return getTypeName(type.getValueType())+"[]";
             
         }
         if (type.isMap()) {
-            ClassInfo<?> mapParm = getMapParm(type);
-            return "Map<String,"+getTypeName(mapParm)+">";
+            
+            return "Map<String,"+getTypeName(type.getValueType())+">";
         }
         
-        Name nameAnno = type.getAnnotation(Name.class);
+        Name nameAnno = type.getType().getAnnotation(Name.class);
         if (nameAnno != null)
             return nameAnno.value();
         return type.getType().getSimpleName();
@@ -195,7 +173,7 @@ public class WebiController {
 
     private void writeMethods(ObjectNode ctrlObject,
             Entry<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> baseEntry,
-            String baseUrl, List<ClassInfo> models) {
+            String baseUrl, List<SharkType> types) {
 
         for (Entry<String, EnumMap<HttpMethod, MethodInfo>> methodPathEntry : baseEntry.getValue().entrySet()) {
             final String methodUrl = methodPathEntry.getKey();
@@ -203,14 +181,14 @@ public class WebiController {
             for (Entry<HttpMethod, MethodInfo> methodEntry : methodPathEntry.getValue().entrySet()) {
                 final HttpMethod httpMethod = methodEntry.getKey();
                 final MethodInfo method = methodEntry.getValue();
-                writeMethod(ctrlObject, methodUrl, baseUrl, httpMethod, method, models);
+                writeMethod(ctrlObject, methodUrl, baseUrl, httpMethod, method, types);
             }
 
         }
     }
 
     private void writeMethod(ObjectNode ctrlObject, String methodUrl, String baseUrl,
-            HttpMethod httpMethod, MethodInfo method, List<ClassInfo> models) {
+            HttpMethod httpMethod, MethodInfo method, List<SharkType> types) {
         String methodName = method.getName();
 
         ArrayNode methodsObject = (ArrayNode) ctrlObject.get(methodName);
@@ -223,29 +201,30 @@ public class WebiController {
         methodObject.put("method", httpMethod);
         methodObject.put("url", String.format("%s/%s", baseUrl, methodUrl));
 
-        ClassInfo returnType = method.getReturnType();
+        SharkType returnType = SharkType.get(method.getReturnType());
         if (!returnType.isA(Void.TYPE)) {
             methodObject.put("returns", getTypeName(returnType));
             if (!returnType.isPrimitive()) {
-                models.add(returnType);
+                types.add(returnType);
             }
         }
 
         Map<String, Parameter> parms = method.getParameters();
         if (!parms.isEmpty()) {
-            writeParms(methodObject.putArray("args"), parms, models);
+            writeParms(methodObject.putArray("args"), parms, types);
         }
     }
 
-    private void writeParms(ArrayNode argsObject, Map<String, Parameter> parms, List<ClassInfo> models) {
+    private void writeParms(ArrayNode argsObject, Map<String, Parameter> parms, List<SharkType> models) {
         for (Entry<String, Parameter> entry : parms.entrySet()) {
             Parameter parm = entry.getValue();
 
-            ClassInfo type = parm.getType();
-            if (type.hasAnnotation(Ignore.class)) {
+            if (parm.getType().hasAnnotation(Ignore.class)) {
                 continue;
             }
-
+            
+            SharkType type = SharkType.get(parm.getType());
+            
             if (type.inherits(WebiSession.class)
                     || type.inherits(WebiContext.class)
                     || type.inherits(HttpServletRequest.class)
@@ -303,10 +282,10 @@ public class WebiController {
 
             arg.put("name", entry.getKey());
             arg.put("type", getTypeName(type));
-            if (type.isEnum()) {
+            if (parm.getType().isEnum()) {
                 arg.put("type", "enum");
                 ArrayNode enumNode = arg.putArray("enum");
-                for(Object val:type.getEnumConstants()) {
+                for(Object val:parm.getType().getEnumConstants()) {
                     enumNode.add((Enum)val);
                 }
             }
