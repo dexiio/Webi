@@ -24,6 +24,7 @@ import java.util.*;
 import java.util.Map.Entry;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
+import org.apache.commons.fileupload.FileItem;
 
 /**
  * MVC request handling.
@@ -230,9 +231,7 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
 
         Object value = null;
         String name = p.getName();
-        int bodyPart = 0;
-        SharkNode body = null;
-
+        
         switch (parmType) {
             case PATH:
                 break;
@@ -269,6 +268,11 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                 }
                 if (p.getType().inherits(WebiContext.class)) {
                     value = req;
+                    break;
+                }
+                
+                if (p.getType().isA(FileItem.class)) {
+                    value = req.getUpload(name);
                     break;
                 }
                 

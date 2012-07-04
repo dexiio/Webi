@@ -5,15 +5,23 @@ import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 
 /**
  * Webi context wraps request, response and paths.
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public final class WebiContext {
+    private static final ServletFileUpload fileUpload = new ServletFileUpload(new DiskFileItemFactory());
     private final String path;
     private final String base;
     private final HttpServletRequest request;
@@ -21,7 +29,10 @@ public final class WebiContext {
     private final HttpMethod httpMethod;
     private final GETMap GETMap;
     private final WebiSession session;
+    
+    private final List<DiskFileItem> uploads;
     private String responseType = "text/plain";
+    
     
     protected WebiContext(String base,String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
         this.base = base;
@@ -38,6 +49,21 @@ public final class WebiContext {
         if (s == null)
             s = new WebiSession();
         this.session = s;
+        if (isMultiPart()) {
+            List<DiskFileItem> tmp = null;
+            try {
+                tmp = fileUpload.parseRequest(request);
+            } catch (FileUploadException ex) {
+                Logger.getLogger(WebiContext.class.getName()).log(Level.SEVERE, null, ex);
+            }
+            uploads = tmp;
+        } else {
+            uploads = null;
+        }
+    }
+    
+    public boolean isMultiPart() {
+        return ServletFileUpload.isMultipartContent(request);
     }
 
     public WebiSession getSession() {
@@ -50,6 +76,20 @@ public final class WebiContext {
 
     public HttpServletResponse getResponse() {
         return response;
+    }
+    
+    public List<DiskFileItem> getUploads() throws FileUploadException {
+        return uploads;
+    }
+    
+    public DiskFileItem getUpload(String name) throws FileUploadException {
+        if (uploads == null) 
+            return null;
+        for(DiskFileItem item:uploads) {
+            if (item.getFieldName().equals(name))
+                return item;
+        }
+        return null;
     }
 
     /**

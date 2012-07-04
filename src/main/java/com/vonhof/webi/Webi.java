@@ -68,7 +68,7 @@ public final class Webi {
         server = new Server();
         final SelectChannelConnector connector = new SelectChannelConnector();
         connector.setPort(port);
-        connector.setAcceptors(Runtime.getRuntime().availableProcessors());
+        connector.setAcceptors(20);
         server.setConnectors(new Connector[]{connector});
         init();
     }
