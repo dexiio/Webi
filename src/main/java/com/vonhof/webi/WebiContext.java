@@ -27,7 +27,7 @@ public final class WebiContext {
     private final HttpServletRequest request;
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
-    private final GETMap GETMap;
+    private final ParmMap parmMap;
     private final WebiSession session;
     
     private final List<DiskFileItem> uploads;
@@ -40,7 +40,7 @@ public final class WebiContext {
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
-        GETMap = new GETMap(request.getParameterMap());
+        parmMap = new ParmMap(request.getParameterMap());
         
         WebiSession s = null;
         if (resolver != null) {
@@ -112,8 +112,8 @@ public final class WebiContext {
      * get HTTP GET variables
      * @return 
      */
-    public GETMap GET() {
-        return GETMap;
+    public ParmMap getParameterMap() {
+        return parmMap;
     }
 
     /**
@@ -252,10 +252,10 @@ public final class WebiContext {
 
     
     
-    public static final class GETMap {
+    public static final class ParmMap {
         private final Map<String,String[]> inner;
 
-        public GETMap(Map<String, String[]> inner) {
+        public ParmMap(Map<String, String[]> inner) {
             this.inner = inner;
         }
         public String get(String name) {

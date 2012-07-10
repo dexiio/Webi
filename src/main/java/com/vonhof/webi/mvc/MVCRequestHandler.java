@@ -10,7 +10,7 @@ import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.*;
-import com.vonhof.webi.WebiContext.GETMap;
+import com.vonhof.webi.WebiContext.ParmMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Parm;
@@ -155,7 +155,7 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
      * @param ctxt 
      */
     private void setResponseType(WebiContext ctxt) {
-        String format = ctxt.GET().get("format");
+        String format = ctxt.getParameterMap().get("format");
         if (format == null) {
             format = bs.getDefaultType();
         }
@@ -281,12 +281,12 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                     break;
                 }
                 
-                if (p.getType().inherits(GETMap.class)) {
-                    value = req.GET();
+                if (p.getType().inherits(ParmMap.class)) {
+                    value = req.getParameterMap();
                     break;
                 }
 
-                String[] values = req.GET().getAll(name);
+                String[] values = req.getParameterMap().getAll(name);
                 if (values == null) {
                     values = defaultValue;
                 }

@@ -118,6 +118,16 @@ public class WebiController {
                 fieldNode.put("description", "");
                 fieldNode.put("required", false);
             }
+            
+            if (type.equals(fieldType)) {
+                String typeName = getTypeName(fieldType);
+                fieldNode.put("type",typeName);
+                
+                if (modelsNode.get(typeName) != null) 
+                    continue;
+                modelsNode.putObject(typeName);
+                continue;
+            }
 
             if (fieldType.isPrimitive() || fieldType.isCollection() || fieldType.isMap()) {
                 fieldNode.put("type", getTypeName(fieldType));
@@ -133,19 +143,18 @@ public class WebiController {
                     SharkType genType = fieldType.getValueType();
                     
                     String typeName = getTypeName(genType);
-                    if (modelsNode.get(typeName) != null) return;
+                    if (modelsNode.get(typeName) != null) continue;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
                     writeModel(modelsNode,subModelNode, genType);
-                    return;
                 } else if (fieldType.isMap()) {
                     SharkType genType = fieldType.getValueType();
                     String typeName = getTypeName(genType);
-                    if (modelsNode.get(typeName) != null) return;
+                    if (modelsNode.get(typeName) != null) continue;
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
                     writeModel(modelsNode,subModelNode, genType);
-                    return;
                 }
             } else {
+                
                 ObjectNode subModelNode = modelsNode.putObject(getTypeName(fieldType));
                 writeModel(modelsNode,subModelNode, fieldType);
             }
