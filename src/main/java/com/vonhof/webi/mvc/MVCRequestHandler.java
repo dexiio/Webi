@@ -74,6 +74,12 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
             //Invoke REST method
             Object output = invokeAction(ctxt);
             
+            if (ctxt.getResponse().isCommitted()) {
+                //Response is already send - exit
+                return;
+            }
+            
+            
             ctxt.setHeader("Content-type", ctxt.getResponseType());
             
             
