@@ -250,6 +250,10 @@ public final class WebiContext {
         flushBuffer();
     }
 
+    public void sendError(int i, String msg) throws IOException {
+        response.sendError(i, msg);
+    }
+
     
     
     public static final class ParmMap {

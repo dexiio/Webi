@@ -3,10 +3,10 @@ package com.vonhof.webi;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.SessionHandler;
-import com.vonhof.webi.session.WebiSession;
 import com.vonhof.webi.websocket.SocketService;
 import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -56,6 +56,11 @@ public final class Webi {
     private final Server server;
     
     /**
+     * Users used for basic authentication
+     */
+    private final Map<String,String> users = new HashMap<String, String>();
+    
+    /**
      * Dev mode disables various caching to allow for easier development.
      */
     private boolean devMode = false;;
@@ -70,6 +75,7 @@ public final class Webi {
         connector.setPort(port);
         connector.setAcceptors(Runtime.getRuntime().availableProcessors()*2);
         server.setConnectors(new Connector[]{connector});
+        
         init();
     }
     
@@ -201,6 +207,10 @@ public final class Webi {
     private class Handler extends AbstractHandler implements WebSocketFactory.Acceptor {
         
         private final WebSocketFactory webSocketFactory = new WebSocketFactory(this, 3*1024);
+        
+        private void handleBasicAuth() {
+            
+        }
 
         public void handle(String path,
                 Request baseRequest,
