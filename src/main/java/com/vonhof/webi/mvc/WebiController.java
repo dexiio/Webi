@@ -101,6 +101,8 @@ public class WebiController {
             if (field.hasAnnotation(Ignore.class)) {
                 continue;
             }
+            if (field.isStatic()) 
+                continue;
             
             final ClassInfo fieldInfo = field.getType();
             final SharkType fieldType = SharkType.get(fieldInfo);

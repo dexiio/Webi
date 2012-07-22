@@ -25,6 +25,7 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         this.cookieName = cookieName;
     }
 
+    @Override
     public String getBasePath() {
         return basePath;
     }
@@ -33,6 +34,7 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         return cookieName;
     }
 
+    @Override
     public T handle(WebiContext ctxt) {
         Cookie[] cookies = ctxt.getRequest().getCookies();
         T out = null;
