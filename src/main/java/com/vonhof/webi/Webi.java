@@ -209,9 +209,10 @@ public final class Webi {
         private final WebSocketFactory webSocketFactory = new WebSocketFactory(this, 3*1024);
         
         private void handleBasicAuth() {
-            
+            webSocketFactory.setMaxIdleTime(-1);
         }
 
+        @Override
         public void handle(String path,
                 Request baseRequest,
                 HttpServletRequest request,
@@ -250,6 +251,7 @@ public final class Webi {
             }
         }
 
+        @Override
         public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
             SocketService service = webSockets.get(request.getPathInfo());
             if (service != null) {
@@ -264,6 +266,7 @@ public final class Webi {
             return null;
         }
 
+        @Override
         public boolean checkOrigin(HttpServletRequest request, String origin) {
             return true;
         }

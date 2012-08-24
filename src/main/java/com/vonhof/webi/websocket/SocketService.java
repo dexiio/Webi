@@ -112,11 +112,13 @@ public class SocketService<T extends SocketService.Client> {
         @Inject
         private BabelSharkInstance bs;
 
+        @Override
         public void onOpen(Connection connection) {
             service.clients.add(this);
             this.connection = connection;
         }
 
+        @Override
         public final void onMessage(String data) {
             try {
                 final ObjectNode evtNode = bs.read(data, bs.getDefaultType(), ObjectNode.class);
