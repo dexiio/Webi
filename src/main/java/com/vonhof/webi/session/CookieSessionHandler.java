@@ -25,6 +25,14 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         this.cookieName = cookieName;
     }
 
+    public int getMaxAge() {
+        return maxAge;
+    }
+
+    public void setMaxAge(int maxAge) {
+        this.maxAge = maxAge;
+    }
+
     @Override
     public String getBasePath() {
         return basePath;
@@ -56,11 +64,12 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
         }
         if (out == null) {
             out = newSession(cookieValue);
+            out.setMaxAge(maxAge);
             add(cookieValue, out);
         }
         
         Cookie cookie = new Cookie(cookieName, cookieValue);
-        cookie.setMaxAge(maxAge);
+        cookie.setMaxAge(out.getMaxAge());
         cookie.setPath(getBasePath());
         
         if (ctxt.getResponse() != null)
