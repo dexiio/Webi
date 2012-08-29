@@ -58,6 +58,7 @@ public class CookieSessionHandler<T extends WebiSession> implements SessionHandl
             out = newSession(cookieValue);
             add(cookieValue, out);
         }
+        
         Cookie cookie = new Cookie(cookieName, cookieValue);
         cookie.setMaxAge(maxAge);
         cookie.setPath(getBasePath());

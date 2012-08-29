@@ -120,8 +120,11 @@ public class SocketService<T extends SocketService.Client> {
 
         @Override
         public final void onMessage(String data) {
+            if (data.isEmpty() || data.equals("{}") || data.equals("[]"))
+                return;
             try {
                 final ObjectNode evtNode = bs.read(data, bs.getDefaultType(), ObjectNode.class);
+                
                 final ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
                 final String evtType = typeNode.getValue().toLowerCase();
                 
@@ -155,6 +158,11 @@ public class SocketService<T extends SocketService.Client> {
 
         public SocketService<T> getService() {
             return service;
+        }
+        
+        @EventHandler
+        public void ping() {
+            
         }
         
         
