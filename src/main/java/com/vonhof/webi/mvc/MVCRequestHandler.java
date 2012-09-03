@@ -82,8 +82,7 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
             
             ctxt.setHeader("Content-type", ctxt.getResponseType());
             
-            
-            final Output out = new Output(ctxt.getOutputStream(),ctxt.getResponseType());
+            final Output out = new Output(ctxt.getOutputStream(),ctxt.getOutputType());
             try {
                 bs.write(out,output);
             } catch (MappingException ex) {

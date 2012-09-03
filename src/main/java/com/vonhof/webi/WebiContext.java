@@ -32,6 +32,7 @@ public final class WebiContext {
     
     private final List<DiskFileItem> uploads;
     private String responseType = "text/plain";
+    private String outputType = null;
     
     
     protected WebiContext(String base,String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
@@ -147,6 +148,16 @@ public final class WebiContext {
     public String getResponseType() {
         return responseType;
     }
+
+    public String getOutputType() {
+        return outputType != null ? outputType : responseType;
+    }
+
+    public void setOutputType(String outputType) {
+        this.outputType = outputType;
+    }
+    
+    
 
     /**
      * Get input stream
