@@ -281,6 +281,11 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
                     break;
                 }
                 
+                if (p.getType().isA(TextFile.class)) {
+                    value = new TextFile(req.getUpload(name));
+                    break;
+                }
+                
                 if (p.getType().inherits(WebiSession.class)) {
                     value = req.getSession();
                     break;
