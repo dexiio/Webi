@@ -48,6 +48,10 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
     public MVCRequestHandler() {
         this(new DefaultUrlMapper());
     }
+
+    public UrlMapper getUrlMapper() {
+        return urlMapper;
+    }
     
     public void expose(Object obj) {
         urlMapper.expose(obj);
@@ -58,6 +62,11 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
         urlMapper.expose(obj, baseUrl);
         webi.addBean(obj);
     }
+    
+    public void expose(String id,Object obj) {
+        urlMapper.expose(obj);
+        webi.addBean(id,obj);
+    };
     
     public void handle(WebiContext ctxt) throws IOException, ServletException {
         try {

@@ -3,19 +3,24 @@ package com.vonhof.webi;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.SessionHandler;
+import com.vonhof.webi.session.WebiSession;
 import com.vonhof.webi.websocket.SocketService;
 import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
+import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
+import javax.servlet.SessionCookieConfig;
+import javax.servlet.SessionTrackingMode;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
+import javax.servlet.http.HttpSession;
+import org.eclipse.jetty.http.HttpCookie;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.websocket.WebSocket;
@@ -64,6 +69,8 @@ public final class Webi {
      * Dev mode disables various caching to allow for easier development.
      */
     private boolean devMode = false;;
+    
+    
 
     /**
      * Setup webi server on specified port
@@ -219,12 +226,16 @@ public final class Webi {
                 HttpServletResponse response)
                 throws IOException, ServletException {
             
+            
+            
             PathPattern basePattern = requestHandlers.getPattern(path);
             String basePath = basePattern != null ? basePattern.toString() : "/";
             
             RequestHandler handler = requestHandlers.get(path);
             
             final SessionHandler sessionResolver = sessionHandlers.get(path);
+            
+            
             
             //Hack for path - make a proper normalization process for paths
             if (handler != null) {
@@ -234,6 +245,7 @@ public final class Webi {
             final WebiContext wr = new WebiContext(basePath,path,
                                                     request,response,
                                                    sessionResolver);
+            
             
             for(Filter filter:filters.getAll(path)) {
                 if (!filter.apply(wr))

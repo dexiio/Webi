@@ -18,6 +18,10 @@ public class BeanContext {
     private final static Logger LOG = Logger.getLogger(BeanContext.class.getName());
     private Map<Class,Object> beansByClass = new HashMap<Class, Object>();
     private Map<String,Object> beansById = new HashMap<String, Object>();
+
+    public Map<String, Object> getBeans() {
+        return beansById;
+    }
     
     public <T> void add(Class<T> clz,T bean) {
         beansByClass.put(clz, bean);
@@ -31,7 +35,7 @@ public class BeanContext {
     
     public <T> void add(String id,T bean) {
         beansById.put(id,bean);
-        inject(bean);
+        add(bean);
     }
     
     public <T> T get(Class<T> beanClz) {

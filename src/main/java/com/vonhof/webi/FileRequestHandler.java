@@ -15,7 +15,7 @@ import javax.servlet.ServletException;
 public class FileRequestHandler implements RequestHandler {
     
     @Inject
-    private Webi webi;
+    protected Webi webi;
     
     /**
      * Mime type map
@@ -35,7 +35,7 @@ public class FileRequestHandler implements RequestHandler {
      */
     private String indexFileName = "index.html";
 
-    public void handle(WebiContext ctxt) throws IOException, ServletException {
+    public final void handle(WebiContext ctxt) throws IOException, ServletException {
         String filePath = String.format("%s%s",docRoot,ctxt.getPath());
         File file = new File(filePath);
         if (file.isDirectory()) {
@@ -144,6 +144,12 @@ public class FileRequestHandler implements RequestHandler {
     public void setDocumentRoot(String docRoot) {
         this.docRoot = docRoot;
     }
+
+    public String getDocumentRoot() {
+        return docRoot;
+    }
+    
+    
 
     /**
      * Add mime type to file extension mapping
