@@ -1,13 +1,14 @@
-package com.vonhof.webi;
+package com.vonhof.webi.websockets;
 
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
+import com.vonhof.webi.FileRequestHandler;
+import com.vonhof.webi.HttpMethod;
+import com.vonhof.webi.Webi;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.mvc.MVCRequestHandler;
-import com.vonhof.webi.websocket.EventHandler;
-import com.vonhof.webi.websocket.SocketService;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -23,9 +24,10 @@ public class WebiServer {
         
         //Tell webi to bind to port 8081 - it wont start listening until you call start();
         final Webi webi = new Webi(8081);
-        
         //Initialize websocket service
-        webi.add("/socket/",new SocketService<SocketTest>(SocketTest.class));
+        WebSocketFilter webSocketFilter = new WebSocketFilter();
+        webSocketFilter.add("/socket/",new SocketService<SocketTest>(SocketTest.class));
+        webi.add("/socket/",webSocketFilter);
         
         //Init simple file handler
         FileRequestHandler fileHandler = webi.add("/",FileRequestHandler.getStandardFileHandler());

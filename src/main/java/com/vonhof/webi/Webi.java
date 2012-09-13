@@ -3,38 +3,24 @@ package com.vonhof.webi;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.SessionHandler;
-import com.vonhof.webi.session.WebiSession;
-import com.vonhof.webi.websocket.SocketService;
-import com.vonhof.webi.websocket.SocketService.Client;
 import java.io.IOException;
-import java.util.EventListener;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import org.eclipse.jetty.http.HttpCookie;
-import org.eclipse.jetty.server.*;
+import org.eclipse.jetty.server.Connector;
+import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
-import org.eclipse.jetty.websocket.WebSocket;
-import org.eclipse.jetty.websocket.WebSocketFactory;
 
 /**
  * Main Webi method
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public final class Webi {
-    /**
-     * Request handler map
-     */
-    private final PathPatternMap<SocketService> webSockets = new PathPatternMap<SocketService>();
+    
     /**
      * Request handler map
      */
@@ -158,24 +144,7 @@ public final class Webi {
         return filter;
     }
     
-    /**
-     * Add request handler at path
-     * @param path
-     * @param handler 
-     */
-    public <T extends SocketService> T  add(String path,T service) {
-        webSockets.put(path, service);
-        beanContext.add(service);
-        return service;
-    }
-
-    /**
-     * Get websocket services
-     * @return 
-     */
-    public PathPatternMap<SocketService> getWebSockets() {
-        return webSockets;
-    }
+  
     
     
     /**
@@ -211,14 +180,8 @@ public final class Webi {
     /**
      * Internal webi jetty handler
      */
-    private class Handler extends AbstractHandler implements WebSocketFactory.Acceptor {
+    private class Handler extends AbstractHandler {
         
-        private final WebSocketFactory webSocketFactory = new WebSocketFactory(this, 3*1024);
-        
-        private void handleBasicAuth() {
-            webSocketFactory.setMaxIdleTime(-1);
-        }
-
         @Override
         public void handle(String path,
                 Request baseRequest,
@@ -252,35 +215,11 @@ public final class Webi {
                     return;
             }
             
-            if (webSocketFactory.acceptWebSocket(request,response)) {
-                return;
-            }
-            
             if (handler != null) {
                 handler.handle(wr);
             } else {
                 response.sendError(404,"Not found");
             }
-        }
-
-        @Override
-        public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
-            SocketService service = webSockets.get(request.getPathInfo());
-            if (service != null) {
-                try {
-                    Client client = service.newClient();
-                    beanContext.inject(client);
-                    return client;
-                } catch (Exception ex) {
-                    Logger.getLogger(Webi.class.getName()).log(Level.SEVERE, null, ex);
-                }
-            }
-            return null;
-        }
-
-        @Override
-        public boolean checkOrigin(HttpServletRequest request, String origin) {
-            return true;
         }
     }
 }

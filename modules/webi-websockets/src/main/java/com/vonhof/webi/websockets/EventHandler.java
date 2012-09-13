@@ -1,4 +1,4 @@
-package com.vonhof.webi.websocket;
+package com.vonhof.webi.websockets;
 
 import java.lang.annotation.*;
 

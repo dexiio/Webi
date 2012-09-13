@@ -1,4 +1,4 @@
-package com.vonhof.webi.websocket;
+package com.vonhof.webi.websockets;
 
 import com.vonhof.babelshark.BabelSharkInstance;
 import com.vonhof.babelshark.node.ArrayNode;
@@ -8,7 +8,8 @@ import com.vonhof.babelshark.node.ValueNode;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
-import com.vonhof.webi.websocket.SocketService.Client;
+import com.vonhof.webi.HttpException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -150,7 +151,6 @@ public class SocketService<T extends SocketService.Client> {
                 }
 
                 evtHandler.invoke(this, args);
-
             } catch (Exception ex) {
                 handleException(ex);
             }
@@ -178,6 +178,9 @@ public class SocketService<T extends SocketService.Client> {
         }
 
         public void handleException(Throwable ex) {
+            if (ex instanceof InvocationTargetException 
+                    && ex.getCause() instanceof HttpException)
+                return;
             Logger.getLogger(SocketService.class.getName()).
                     log(Level.SEVERE, null, ex);
         }
