@@ -31,6 +31,7 @@ public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterI
 
     public WebSocketFilter() {
         webSocketFactory.setMaxIdleTime(-1);
+        webSocketFactory.setMaxTextMessageSize(Integer.MAX_VALUE);
     }
     
     

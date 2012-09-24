@@ -18,7 +18,10 @@ import javax.inject.Inject;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class AbstractDAO<T extends BasicDTO> implements AfterInject {
+    protected
     @Inject DB db;
+    
+    protected
     @Inject BabelSharkInstance bs;
     
     private final String collectionName;
@@ -55,6 +58,11 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         }
         return out;
     }
+    
+    protected DBObject getListFields() {
+        return null;
+    }
+
     
     protected ResultSetDTO<T> toResultSet(final DBCursor c) {
         ResultSetDTO<T> out = new ResultSetDTO<T>();
@@ -100,20 +108,27 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     public ResultSetDTO<T> getList(String ... ids) {
         DBObject q = QueryBuilder.start("_id").in(ids).get();
         
-        return toResultSet(coll().find(q));
+        return toResultSet(queryForList(q));
     }
     
     public ResultSetDTO<T> getList(Collection<String> ids) {
         DBObject q = QueryBuilder.start("_id").in(ids).get();
-        return toResultSet(coll().find(q));
+        return toResultSet(queryForList(q));
     }
     
     public ResultSetDTO<T> getAll(int offset,int limit) {
-        return toResultSet(coll().find().skip(offset).limit(limit));
+        return toResultSet(queryForList().skip(offset).limit(limit));
     }
     
     public ResultSetDTO<T> getAll() {
-        return toResultSet(coll().find());
+        return toResultSet(queryForList());
+    }
+    
+    protected DBCursor queryForList() {
+        return queryForList(new BasicDBObject());
+    }
+    protected DBCursor queryForList(DBObject query) {
+        return coll().find(query,getListFields());
     }
     
     public T create(T doc) {
