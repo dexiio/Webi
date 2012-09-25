@@ -4,8 +4,10 @@ import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.FieldInfo;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -18,6 +20,7 @@ public class BeanContext {
     private final static Logger LOG = Logger.getLogger(BeanContext.class.getName());
     private Map<Class,Object> beansByClass = new HashMap<Class, Object>();
     private Map<String,Object> beansById = new HashMap<String, Object>();
+    private Set<Object> injected = new HashSet<Object>();
 
     public Map<String, Object> getBeans() {
         return beansById;
@@ -68,8 +71,8 @@ public class BeanContext {
         boolean injectedAll = true;
         for(FieldInfo f:fields.values()) {
             Inject annotation = f.getAnnotation(Inject.class);
-            
             f.forceAccessible();
+            injected.add(obj);
             try {
                 Object value = f.get(obj);
                 if (annotation != null 
@@ -98,11 +101,15 @@ public class BeanContext {
                         && ReflectUtils.isBean(value.getClass())
                         && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
                     //Recurse
-                    inject(value, required);
+                    if (!injected.contains(value)) {
+                        inject(value, required);
+                    }
                 }
             } catch (Throwable ex) {
                 LOG.log(Level.SEVERE, null, ex);
             }
+            
+            injected.remove(obj);
         }
         //Only call if all fields were injected (it may be too soon)
         if (injectedAll && obj instanceof AfterInject) {

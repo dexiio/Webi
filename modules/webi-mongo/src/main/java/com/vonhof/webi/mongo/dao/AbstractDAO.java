@@ -38,7 +38,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         collection = db.getCollection(collectionName);
     }
     
-    protected DBCollection coll() {
+    public DBCollection coll() {
         return collection;
     }
         
