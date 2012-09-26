@@ -4,8 +4,12 @@ import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.SessionHandler;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -20,6 +24,7 @@ import org.eclipse.jetty.server.nio.SelectChannelConnector;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public final class Webi {
+    private static final Logger LOG  = Logger.getLogger(Webi.class.getName());
     
     /**
      * Request handler map
@@ -52,12 +57,20 @@ public final class Webi {
     private final Map<String,String> users = new HashMap<String, String>();
     
     /**
+     * A list of registered shutdown handlers that gets called when the Webi server is stopped.
+     */
+    private final List<ShutdownHandler> shutdownHandlers = new ArrayList<ShutdownHandler>();
+    
+    /**
      * Dev mode disables various caching to allow for easier development.
      */
     private boolean devMode = false;;
     
+    /**
+     * Shutdown gracefully
+     */
+    private boolean shutdownGracefully = false;;
     
-
     /**
      * Setup webi server on specified port
      * @param port 
@@ -111,15 +124,54 @@ public final class Webi {
         beanContext.inject(true);
         server.setHandler(new Handler());
         server.start();
-        server.join();
+        try {
+            server.join();
+        } catch (Throwable ex) {
+            
+        }
+        
+        //Not getting here before its shut down
+        for(ShutdownHandler handler:shutdownHandlers) {
+            try {
+                handler.onShutdown(shutdownGracefully);
+            } catch(Exception ex) {
+                LOG.log(Level.WARNING, "Webi got an exception while trying to shutdown jetty", ex);
+            }
+        }
+    }
+    
+    /**
+     * Shutdown graceful
+     * @throws Exception 
+     */
+    public void stop() throws Exception {
+        stop(true);
     }
     
     /**
      * Stop webi server
      * @throws Exception 
      */
-    public void stop() throws Exception {
-        server.stop();
+    public void stop(final boolean graceful) throws Exception {
+        shutdownGracefully = graceful;
+        Thread shutdownThread = new Thread("Shutdown") {
+            @Override
+            public void run() {
+                try {
+                    if (graceful)
+                        server.setGracefulShutdown(5000);
+                    server.stop();
+                } catch(Throwable ex) {
+
+                }
+            }
+        };
+        shutdownThread.start();
+        try {
+            shutdownThread.join();
+        } catch(Throwable ex) {
+            
+        }
     }
     
     /**
@@ -146,6 +198,10 @@ public final class Webi {
     
   
     
+    public void add(ShutdownHandler shutdownHandler) {
+        beanContext.add(shutdownHandler);
+        shutdownHandlers.add(shutdownHandler);
+    }
     
     /**
      * Add session resolver at path
@@ -221,5 +277,10 @@ public final class Webi {
                 response.sendError(404,"Not found");
             }
         }
+    }
+    
+    public static interface ShutdownHandler {
+        
+        public void onShutdown(boolean graceful) throws Exception;
     }
 }
