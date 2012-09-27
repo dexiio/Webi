@@ -91,6 +91,21 @@ public class SocketService<T extends SocketService.Client> {
             final String output = bs.writeToString(evt, contentType);
             
             client.connection.sendMessage(output);
+            
+            return true;
+        } catch (Exception ex) {
+            Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+    }
+    
+    private boolean send(Client client, byte[] data) {
+        try {
+            if (!client.connection.isOpen()) {
+                return false;
+            }
+            
+            client.connection.sendMessage(data, 0, data.length);
             return true;
         } catch (Exception ex) {
             Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
@@ -175,6 +190,10 @@ public class SocketService<T extends SocketService.Client> {
         
         public final void send(String evt,Object ... args) {
             service.send(this,new Event(evt, args));
+        }
+        
+        public final void send(byte[] data) {
+            service.send(this,data);
         }
 
         public void handleException(Throwable ex) {
