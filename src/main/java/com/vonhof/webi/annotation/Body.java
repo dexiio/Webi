@@ -11,6 +11,7 @@ import java.lang.annotation.*;
 @Documented
 @Target(value={ElementType.PARAMETER})
 @Retention(value=RetentionPolicy.RUNTIME)
+@Inherited
 public @interface Body {
     boolean value() default true;
 }
