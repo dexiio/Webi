@@ -1,4 +1,4 @@
-package com.vonhof.webi.mvc;
+package com.vonhof.webi.rest;
 
 import com.vonhof.babelshark.*;
 import com.vonhof.babelshark.annotation.Ignore;
@@ -30,7 +30,7 @@ import org.apache.commons.fileupload.FileItem;
  * MVC request handling.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class MVCRequestHandler implements RequestHandler,AfterInject {
+public class RESTServiceHandler implements RequestHandler,AfterInject {
     
     @Inject
     private Webi webi;
@@ -39,14 +39,19 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
     private BabelSharkInstance bs;
     
     private final UrlMapper urlMapper;
+    private ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
     
 
-    public MVCRequestHandler(UrlMapper urlMapper) {
+    public RESTServiceHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
     }
     
-    public MVCRequestHandler() {
+    public RESTServiceHandler() {
         this(new DefaultUrlMapper());
+    }
+
+    public void setExceptionHandler(ExceptionHandler exceptionHandler) {
+        this.exceptionHandler = exceptionHandler;
     }
 
     public UrlMapper getUrlMapper() {
@@ -68,38 +73,43 @@ public class MVCRequestHandler implements RequestHandler,AfterInject {
         webi.addBean(id,obj);
     };
     
+    @Override
     public void handle(WebiContext ctxt) throws IOException, ServletException {
+        
+        setResponseType(ctxt);
+
+        ctxt.setHeader("Access-Control-Allow-Origin", "*");
+        ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept");
+        
+        Object output = null;
+
+        if (ctxt.getMethod().equals(HttpMethod.OPTIONS)) {
+            ctxt.flushBuffer();
+            return;
+        }
+
         try {
-            
-            setResponseType(ctxt);
-            
-            ctxt.setHeader("Access-Control-Allow-Origin", "*");
-            ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept");
-            
-            if (ctxt.getMethod().equals(HttpMethod.OPTIONS)) {
-                ctxt.flushBuffer();
-                return;
-            }
             //Invoke REST method
-            Object output = invokeAction(ctxt);
-            
+            output = invokeAction(ctxt);
+        } catch (Throwable ex) {
+            output = exceptionHandler.handle(ctxt,ex);
+        } finally {
             if (ctxt.getResponse().isCommitted()) {
                 //Response is already send - exit
                 return;
             }
             
-            
             ctxt.setHeader("Content-type", ctxt.getResponseType());
             
             final Output out = new Output(ctxt.getOutputStream(),ctxt.getOutputType());
+            
             try {
                 bs.write(out,output);
             } catch (MappingException ex) {
                 throw new IOException(ex);
             }
+            
             ctxt.flushBuffer();
-        } catch (Throwable ex) {
-            ctxt.sendError(ex);
         }
     }
 

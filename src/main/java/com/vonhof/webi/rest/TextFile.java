@@ -1,4 +1,4 @@
-package com.vonhof.webi.mvc;
+package com.vonhof.webi.rest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

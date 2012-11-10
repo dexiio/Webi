@@ -1,4 +1,4 @@
-package com.vonhof.webi.mvc;
+package com.vonhof.webi.rest;
 
 import com.vonhof.babelshark.annotation.Ignore;
 import com.vonhof.babelshark.reflect.ClassInfo;

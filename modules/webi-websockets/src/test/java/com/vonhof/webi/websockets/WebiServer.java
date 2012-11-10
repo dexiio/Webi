@@ -8,7 +8,7 @@ import com.vonhof.webi.Webi;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
-import com.vonhof.webi.mvc.MVCRequestHandler;
+import com.vonhof.webi.rest.RESTServiceHandler;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -34,7 +34,7 @@ public class WebiServer {
         fileHandler.setDocumentRoot(System.getProperty("user.home"));
         
         //Init ther REST request handler
-        final MVCRequestHandler restHandler = webi.add("/rest/", new MVCRequestHandler());
+        final RESTServiceHandler restHandler = webi.add("/rest/", new RESTServiceHandler());
         
         //Expose the hallo service. You can expose services both before and after you've started webi.
         restHandler.expose(new HalloService());

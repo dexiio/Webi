@@ -177,6 +177,11 @@ public final class WebiContext {
         return response.getOutputStream();
     }
 
+    public void setStatus(int code) {
+        if (!response.isCommitted()) {
+            response.setStatus(code);
+        }
+    }
     /**
      * Send exception to client
      * @param ex
@@ -190,8 +195,9 @@ public final class WebiContext {
             if (ex instanceof HttpException) {
                 int code = ((HttpException)ex).getCode();
                 response.setStatus(code);
-                if (code == 404)
+                if (code == 404) {
                     showTrace = false;
+                }
                     
             } else {
                 response.setStatus(500);

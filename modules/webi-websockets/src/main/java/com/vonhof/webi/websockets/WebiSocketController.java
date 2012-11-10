@@ -5,7 +5,7 @@ import com.vonhof.babelshark.node.ObjectNode;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Path;
-import com.vonhof.webi.mvc.WebiController;
+import com.vonhof.webi.rest.WebiController;
 import java.util.Map;
 import javax.inject.Inject;
 

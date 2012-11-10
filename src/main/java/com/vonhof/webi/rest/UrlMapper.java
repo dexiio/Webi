@@ -1,4 +1,4 @@
-package com.vonhof.webi.mvc;
+package com.vonhof.webi.rest;
 
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.webi.HttpMethod;
