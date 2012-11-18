@@ -15,6 +15,7 @@ public class DefaultExceptionHandler implements ExceptionHandler {
 
     @Override
     public Object handle(WebiContext ctxt,Throwable ex) {
+        LOG.log(Level.SEVERE, null, ex);
         if (ex instanceof HttpException) {
             ErrorMessage out = new ErrorMessage((HttpException)ex);
             ctxt.setStatus(out.getCode() > 0 ? out.getCode() : 500);
