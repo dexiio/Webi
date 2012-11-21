@@ -22,6 +22,11 @@ public class BeanContext {
     private Map<String,Object> beansById = new HashMap<String, Object>();
     private Set<Object> injected = new HashSet<Object>();
 
+    public BeanContext() {
+        //Add myself
+        add(this);
+    }
+
     public Map<String, Object> getBeans() {
         return beansById;
     }
@@ -62,10 +67,10 @@ public class BeanContext {
         }
     }
     
-    public void inject(Object obj) {
-        inject(obj, false);
+    public <T> T inject(T obj) {
+        return (T)inject(obj, false);
     }
-    public void inject(Object obj,boolean required) {
+    public <T> T inject(T obj,boolean required) {
         ClassInfo<?> clz = ClassInfo.from(obj.getClass());
         Map<String,FieldInfo> fields = clz.getFields();
         boolean injectedAll = true;
@@ -107,13 +112,15 @@ public class BeanContext {
                 }
             } catch (Throwable ex) {
                 LOG.log(Level.SEVERE, null, ex);
+            } finally {
+                injected.remove(obj);
             }
-            
-            injected.remove(obj);
         }
         //Only call if all fields were injected (it may be too soon)
         if (injectedAll && obj instanceof AfterInject) {
             ((AfterInject)obj).afterInject();
         }
+        
+        return obj;
     }
 }

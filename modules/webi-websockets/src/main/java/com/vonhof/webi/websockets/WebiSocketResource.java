@@ -15,7 +15,7 @@ import javax.inject.Inject;
  */
 @Path("webi")
 @Name("webi")
-public class WebiSocketController extends WebiController {
+public class WebiSocketResource extends WebiController {
     
     @Inject
     WebSocketFilter webSocketFilter;
