@@ -13,8 +13,9 @@ public class BasicDTO {
     private String id;
 
     public String getId() {
-        if (id == null)
+        if (id == null) {
             id = UUID.randomUUID().toString();
+        }
         return id;
     }
 

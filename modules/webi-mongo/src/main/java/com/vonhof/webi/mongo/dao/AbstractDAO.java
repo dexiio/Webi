@@ -27,6 +27,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     private final String collectionName;
     private final Class<T> entryClass;
     private DBCollection collection;
+    private List<DBObject> sortKeys = new ArrayList<DBObject>();
 
     public AbstractDAO(String collectionName,Class<T> entryClass) {
         this.collectionName = collectionName;
@@ -37,6 +38,41 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     public void afterInject() {
         collection = db.getCollection(collectionName);
     }
+    
+    
+    protected void addSortKey(String field,int dir) {
+        sortKeys.add(new BasicDBObject(field, dir));
+    }
+    
+    protected void ensureIndex(String ... fields) {
+        if (fields.length == 0) {
+            return;
+        }
+        
+        BasicDBObject keys = new BasicDBObject();
+        for(String field:fields)  {
+            keys.put(field,1);
+        }
+        
+        coll().ensureIndex(keys);
+    }
+    
+    protected void ensureSortedIndex(String ... fields) {
+        if (fields.length == 0) {
+            return;
+        }
+        for(DBObject sortKey:sortKeys) {
+
+            BasicDBObject keys = new BasicDBObject();
+            for(String field:fields)  {
+                keys.put(field,1);
+            }
+            keys.putAll(sortKey);
+            coll().ensureIndex(keys);
+        }
+    }
+    
+    
     
     public DBCollection coll() {
         return collection;
