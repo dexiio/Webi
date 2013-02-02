@@ -33,7 +33,7 @@ import org.apache.commons.io.IOUtils;
  */
 public class JavascriptHandler extends PreprocessingRequestHandler {
     
-    private final static Pattern modulePattern = Pattern.compile("(?uis)^//@module\\s+([A-Z\\.\\-_][A-Z0-9\\.\\-_]+)(?:\\s+@prio ([0-9])+)?");
+    private final static Pattern modulePattern = Pattern.compile("(?uis)^//@module\\s+([A-Z\\.\\-_][A-Z0-9\\.\\-_]+)(?:\\s+@prio ([0-9]+))?");
         
     private final CompilerOptions options = new CompilerOptions();
     
@@ -123,6 +123,8 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             if (!modules.containsKey(moduleName)) {
                 modules.put(moduleName, new JSModule(moduleName));
             }
+            
+            System.out.println(String.format("%s prio: %s %s", moduleName,order,relativePath));
             if (order > 0) {
                 modules.get(moduleName).addFirst(sFile);
             } else {
