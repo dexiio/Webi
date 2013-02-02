@@ -1,5 +1,9 @@
-package com.vonhof.webi;
+package com.vonhof.webi.file;
 
+import com.vonhof.webi.HttpException;
+import com.vonhof.webi.RequestHandler;
+import com.vonhof.webi.Webi;
+import com.vonhof.webi.WebiContext;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -35,6 +39,7 @@ public class FileRequestHandler implements RequestHandler {
      */
     private String indexFileName = "index.html";
 
+    @Override
     public final void handle(WebiContext ctxt) throws IOException, ServletException {
         String filePath = String.format("%s%s",docRoot,ctxt.getPath());
         File file = new File(filePath);
@@ -49,7 +54,7 @@ public class FileRequestHandler implements RequestHandler {
             
             File indexFile = new File(indexFilePath);
             if (!indexFile.exists()) {
-                serveDir(ctxt, file);
+                 serveDir(ctxt, file);
                 return;
             } else {
                 file = indexFile;
@@ -60,10 +65,14 @@ public class FileRequestHandler implements RequestHandler {
         if (file.exists()) {
             serveFile(ctxt, file);;
         } else {
-            ctxt.sendError(new HttpException(HttpException.NOT_FOUND,"Not found"));
-            if (!file.getName().equalsIgnoreCase("favicon.ico")) {
-                System.out.println("File not found:"+filePath);
-            }
+            unknownFile(ctxt, file, filePath);
+        }
+    }
+    
+    protected void unknownFile(WebiContext ctxt,File file,String path) throws IOException {
+        ctxt.sendError(new HttpException(HttpException.NOT_FOUND,"Not found"));
+        if (!file.getName().equalsIgnoreCase("favicon.ico")) {
+            System.out.println("File not found:"+path);
         }
     }
     
@@ -105,8 +114,17 @@ public class FileRequestHandler implements RequestHandler {
      */
     protected void serveFile(WebiContext req,File file) throws IOException {
         req.setHeader("Content-type",getResponseType(file));
-        if (!webi.isDevMode())
-            req.setDateHeader("Last-Modified",file.lastModified());
+        
+        long lastModified = file.lastModified();
+        long reqLastModified = req.getRequest().getDateHeader("If-Modified-Since");
+        
+        req.setDateHeader("Last-Modified",lastModified);
+        
+        if (reqLastModified > 0 && lastModified <= reqLastModified) {
+            req.setStatus(304);
+            req.flushBuffer();
+            return;
+        }
         
         FileInputStream fileIn = new FileInputStream(file);
         while(fileIn.available() > 0) {
@@ -121,12 +139,22 @@ public class FileRequestHandler implements RequestHandler {
      * @return 
      */
     protected String getResponseType(File file) {
-        String[] parts = file.getName().split("\\.");
-        String ext = parts[parts.length-1].toLowerCase();
+        String ext = getFileExt(file);
         String mimeType = mimeTypes.get(ext);
-        if (mimeType == null)
+        if (mimeType == null) {
             mimeType = defaultMimeType;
+        }
         return mimeType;
+    }
+    
+    /**
+     * Get file extension 
+     * @param file
+     * @return 
+     */
+    protected String getFileExt(File file) {
+        String[] parts = file.getName().split("\\.");
+        return parts[parts.length-1].toLowerCase();
     }
 
     /**
@@ -175,22 +203,26 @@ public class FileRequestHandler implements RequestHandler {
      */
     public static FileRequestHandler getStandardFileHandler() {
         FileRequestHandler out = new FileRequestHandler();
-        out.addMimeType("jpg","image/jpeg");
-        out.addMimeType("png","image/png");
-        out.addMimeType("gif","image/gif");
-        out.addMimeType("bmp","image/bmp");
-        out.addMimeType("html","text/html");
-        out.addMimeType("htm","text/html");
-        out.addMimeType("css","text/css");
-        out.addMimeType("json","application/json");
-        out.addMimeType("xml","text/xml");
-        out.addMimeType("js","text/javascript");
-        out.addMimeType("woff","application/x-font-woff");
-        out.addMimeType("ttf","font/ttf");
-        out.addMimeType("eot","font/eot");
-        out.addMimeType("otf","font/otf");
+        out.addDefaultMimeTypes();
         
         return out;
+    }
+    
+    public void addDefaultMimeTypes() {
+        addMimeType("jpg","image/jpeg");
+        addMimeType("png","image/png");
+        addMimeType("gif","image/gif");
+        addMimeType("bmp","image/bmp");
+        addMimeType("html","text/html");
+        addMimeType("htm","text/html");
+        addMimeType("css","text/css");
+        addMimeType("json","application/json");
+        addMimeType("xml","text/xml");
+        addMimeType("js","text/javascript");
+        addMimeType("woff","application/x-font-woff");
+        addMimeType("ttf","font/ttf");
+        addMimeType("eot","font/eot");
+        addMimeType("otf","font/otf");
     }
 
 }

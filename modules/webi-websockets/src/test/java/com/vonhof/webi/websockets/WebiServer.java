@@ -2,7 +2,7 @@ package com.vonhof.webi.websockets;
 
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.language.JsonLanguage;
-import com.vonhof.webi.FileRequestHandler;
+import com.vonhof.webi.file.FileRequestHandler;
 import com.vonhof.webi.HttpMethod;
 import com.vonhof.webi.Webi;
 import com.vonhof.webi.annotation.Body;
