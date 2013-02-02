@@ -124,7 +124,6 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 modules.put(moduleName, new JSModule(moduleName));
             }
             
-            System.out.println(String.format("%s prio: %s %s", moduleName,order,relativePath));
             if (order > 0) {
                 modules.get(moduleName).addFirst(sFile);
             } else {
