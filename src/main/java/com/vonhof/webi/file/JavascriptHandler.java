@@ -39,6 +39,7 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
 
     public JavascriptHandler() {
         super("text/javascript");
+        Compiler.setLoggingLevel(Level.SEVERE);
     }
 
     @Override
@@ -58,8 +59,10 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
     } 
     
     private void compiled(WebiContext req, List<File> files) throws IOException {
-        final Compiler compiler = new Compiler();
+        
         final String sourceName = req.getRequest().getRequestURI();
+        final String sourceMapPath = sourceName+"?map";
+        //Check if we should be outputting source map
         boolean outputMap = req.getParameterMap().contains("map");
         if (outputMap) {
             req.setHeader("Content-type", "application/json");
@@ -67,13 +70,15 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 IOUtils.write(sourceMaps.get(sourceName), req.getOutputStream());
                 return;
             }
+        } else {
+            req.setHeader("X-SourceMap",sourceMapPath);
         }
         
         final CompilerOptions options = new CompilerOptions();
         CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
         options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT5);
         options.sourceMapDetailLevel = SourceMap.DetailLevel.ALL;
-        options.sourceMapOutputPath = sourceName+"?map";
+        options.sourceMapOutputPath = sourceMapPath;
         
         
         final ArrayList<SourceFile> externs = new ArrayList<SourceFile>();
@@ -81,12 +86,12 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         JSModule rootModule = new JSModule("global");
         modules.put("__global", rootModule);
         
+        //Atleast 1 source file required in root module
         rootModule.add(SourceFile.fromCode("root.js", ""));
         
-        
         final String baseDir = this.getDocumentRoot()+req.getPath();
-        final Map<String,String> dependencies = new HashMap<String, String>();
         
+        //Run through all files that should be compiled
         for(File file:files) {
             
             String relativePath = req.getBase()+file.getAbsolutePath().substring(this.getDocumentRoot().length()+1);
@@ -96,8 +101,10 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             }
             fileName += "?source";
             
+            //Build source file using paths that the browsers will recognize in source maps
             SourceFile sFile = SourceFile.fromCode(fileName,relativePath,Files.toString(file, charset));
             
+            //Check for special comment //@module <name> @prio - low-tech dependency management
             String firstLine = Files.readFirstLine(file, charset);
             Matcher m = modulePattern.matcher(firstLine);
             String moduleName = null;
@@ -116,6 +123,7 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 modules.put(moduleName, new JSModule(moduleName));
             }
             
+            //@TODO: Do a real ordered implementation and not just this
             if (order > 0) {
                 modules.get(moduleName).addFirst(sFile);
             } else {
@@ -123,6 +131,7 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             }
         }
         
+        //Run through all modules and add dependencies as necessary
         for(Entry<String,JSModule> entry:modules.entrySet()) {
             String moduleName = entry.getKey();
             
@@ -137,6 +146,8 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 }
             }
         }
+        
+        //Sort dependencies - Closure needs them to be ordered correctly.
         List<JSModule> moduleList = null;
         try {
             JSModule[] sortJsModules = JSModule.sortJsModules(modules.values());
@@ -145,21 +156,24 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             throw new IOException(ex);
         }
         
-        Compiler.setLoggingLevel(Level.SEVERE);
-        
+        //Instantiate and compile all modules
+        final Compiler compiler = new Compiler();
         Result result = compiler.compileModules(externs,moduleList, options);
         
         //Must generate sources before accessing source map
         String source = compiler.toSource();
         
+        //Build source map
         StringBuilder sb = new StringBuilder();
         result.sourceMap.validate(true);
         result.sourceMap.appendTo(sb, sourceName);
         sourceMaps.put(sourceName, sb.toString());
         
         if (outputMap) {
+            //Output source map
             IOUtils.write(sourceMaps.get(sourceName), req.getOutputStream());
         } else {
+            //Add source map special comment to source and output compiled js
             source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
             req.setHeader("X-SourceMap",options.sourceMapOutputPath);
             IOUtils.write(source, req.getOutputStream());
