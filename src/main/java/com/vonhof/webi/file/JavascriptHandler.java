@@ -89,20 +89,28 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         //Atleast 1 source file required in root module
         rootModule.add(SourceFile.fromCode("root.js", ""));
         
+        //Get absolute dir path to current url
         final String baseDir = this.getDocumentRoot()+req.getPath();
         
         //Run through all files that should be compiled
         for(File file:files) {
             
+            //Calculate relative path to HTTP root path
             String relativePath = req.getBase()+file.getAbsolutePath().substring(this.getDocumentRoot().length()+1);
-            String fileName = file.getAbsolutePath().substring(baseDir.length());
-            if (fileName.isEmpty()) {
-                fileName = file.getName();
+            
+            //Get relative path to file from the current path. This is that path that the browsers will use for 
+            //finding non-minified js
+            String sourcePath = file.getAbsolutePath().substring(baseDir.length());
+            if (sourcePath.isEmpty()) {
+                //If the current path is same as the file path, just use the filename
+                sourcePath = file.getName();
             }
-            fileName += "?source";
+            
+            //Add parm to have actual non-minified source code show up
+            sourcePath += "?source";
             
             //Build source file using paths that the browsers will recognize in source maps
-            SourceFile sFile = SourceFile.fromCode(fileName,relativePath,Files.toString(file, charset));
+            SourceFile sFile = SourceFile.fromCode(sourcePath,relativePath,Files.toString(file, charset));
             
             //Check for special comment //@module <name> @prio - low-tech dependency management
             String firstLine = Files.readFirstLine(file, charset);
@@ -116,9 +124,11 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 }
             }
             
+            //Default module name
             if (moduleName == null || moduleName.isEmpty()) {
                 moduleName = "__global";
             }
+            //Create module if not exists
             if (!modules.containsKey(moduleName)) {
                 modules.put(moduleName, new JSModule(moduleName));
             }
