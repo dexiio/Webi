@@ -16,12 +16,10 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.io.IOUtils;
@@ -35,8 +33,6 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
     
     private final static Pattern modulePattern = Pattern.compile("(?uis)^//@module\\s+([A-Z\\.\\-_][A-Z0-9\\.\\-_]+)(?:\\s+@prio ([0-9]+))?");
         
-    private final CompilerOptions options = new CompilerOptions();
-    
     private final Charset charset = Charset.forName("UTF-8");
     
     private final Map<String,String> sourceMaps = new HashMap<String, String>();
@@ -79,7 +75,6 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         options.sourceMapDetailLevel = SourceMap.DetailLevel.ALL;
         options.sourceMapOutputPath = sourceName+"?map";
         
-        //options.setNameReferenceReportPath("./");
         
         final ArrayList<SourceFile> externs = new ArrayList<SourceFile>();
         final Map<String,JSModule> modules = new HashMap<String, JSModule>();
@@ -88,9 +83,6 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         
         rootModule.add(SourceFile.fromCode("root.js", ""));
         
-        
-        
-        //externs.add(SourceFile.fromCode("webbeans.js", "var $wb = {};var $cs = {};"));
         
         final String baseDir = this.getDocumentRoot()+req.getPath();
         final Map<String,String> dependencies = new HashMap<String, String>();
