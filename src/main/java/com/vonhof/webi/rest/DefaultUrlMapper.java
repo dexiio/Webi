@@ -31,21 +31,26 @@ public class DefaultUrlMapper implements UrlMapper {
 
     @Override
     public void expose(Object obj, String baseUrl) {
+        baseUrl = baseUrl.toLowerCase();
         controllers.put(baseUrl, obj);
-        if (!actions.containsKey(baseUrl))
+        if (!actions.containsKey(baseUrl)) {
             actions.put(baseUrl, new HashMap<String, EnumMap<HttpMethod, MethodInfo>>());
+        }
         Map<String, EnumMap<HttpMethod, MethodInfo>> ctrlActions = actions.get(baseUrl);
         
         ClassInfo<?> classInfo = ClassInfo.from(obj.getClass());
         for (MethodInfo m : classInfo.getMethods()) {
-            if (!m.isPublic() || m.hasAnnotation(Ignore.class) || m.hasAnnotation(Handler.class))
+            if (!m.isPublic() || m.hasAnnotation(Ignore.class) || m.hasAnnotation(Handler.class)) {
                 continue;
+            }
             
             Path path = m.getAnnotation(Path.class);
             HttpMethod httpMethod = path != null ? path.method() : HttpMethod.GET;
             String url = getMethodURL(m);
-            if (!ctrlActions.containsKey(url))
+            if (!ctrlActions.containsKey(url)) {
                 ctrlActions.put(url,new EnumMap<HttpMethod, MethodInfo>(HttpMethod.class));
+            }
+            
             ctrlActions.get(url).put(httpMethod,m);
             LOG.log(Level.INFO,String.format("Mapped %s/%s (%s) to %s:%s",
                                                             baseUrl,url,httpMethod,
@@ -53,6 +58,7 @@ public class DefaultUrlMapper implements UrlMapper {
         }
     }
 
+    @Override
     public Map<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> getMethods() {
         return actions;
     }
@@ -89,20 +95,24 @@ public class DefaultUrlMapper implements UrlMapper {
         int firstSep = url.indexOf("/");
         if (firstSep > 1) {
             String ctrlUrl = url.substring(0,firstSep);
-            if (ctrlUrl.endsWith("/"))
+            if (ctrlUrl.endsWith("/")) {
                 ctrlUrl = ctrlUrl.substring(0,ctrlUrl.length()-1);
+            }
             
             final Map<String, EnumMap<HttpMethod, MethodInfo>> ctrlActions = actions.get(ctrlUrl);
-            if (ctrlActions == null)
+            if (ctrlActions == null) {
                 return null;
+            }
             
             String name = url.substring(firstSep + 1);
-            if (name.endsWith("/"))
+            if (name.endsWith("/")) {
                 name = name.substring(0,name.length()-1);
+            }
             
             final EnumMap<HttpMethod, MethodInfo> methods = ctrlActions.get(name.toLowerCase());
-            if (methods != null)
+            if (methods != null) {
                 return methods.get(method);
+            }
         }
         return null;
     }

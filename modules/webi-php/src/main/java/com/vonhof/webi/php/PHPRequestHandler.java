@@ -23,9 +23,9 @@ import com.caucho.util.L10N;
 import com.caucho.vfs.Path;
 import com.caucho.vfs.Vfs;
 import com.caucho.vfs.WriteStream;
-import com.vonhof.webi.FileRequestHandler;
+import com.vonhof.webi.file.FileRequestHandler;
 import com.vonhof.webi.WebiContext;
-import com.vonhof.webi.mvc.MVCRequestHandler;
+import com.vonhof.webi.rest.RESTServiceHandler;
 import com.vonhof.webi.php.module.WebiModule;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -38,7 +38,7 @@ import java.util.logging.Logger;
  */
 public class PHPRequestHandler extends FileRequestHandler {
     
-    private final MVCRequestHandler service;
+    private final RESTServiceHandler service;
     
     private static final L10N L = new L10N(QuercusServletImpl.class);
     private static final Logger LOG = Logger.getLogger(PHPRequestHandler.class.getName());
@@ -46,7 +46,7 @@ public class PHPRequestHandler extends FileRequestHandler {
     private final QuercusContext quercus = new QuercusContext();
     private final Path basePath;
 
-    public PHPRequestHandler(MVCRequestHandler service,String docRoot) {
+    public PHPRequestHandler(RESTServiceHandler service,String docRoot) {
         super();
         this.service = service;
         

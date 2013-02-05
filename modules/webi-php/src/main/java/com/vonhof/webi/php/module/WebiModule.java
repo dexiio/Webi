@@ -16,9 +16,9 @@ import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
-import com.vonhof.webi.mvc.MVCRequestHandler;
-import com.vonhof.webi.mvc.TextFile;
-import com.vonhof.webi.mvc.UrlMapper;
+import com.vonhof.webi.rest.RESTServiceHandler;
+import com.vonhof.webi.rest.TextFile;
+import com.vonhof.webi.rest.UrlMapper;
 import com.vonhof.webi.session.WebiSession;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -34,10 +34,10 @@ import org.apache.commons.fileupload.FileItem;
  */
 public class WebiModule extends AbstractQuercusModule {
 
-    private final MVCRequestHandler service;
+    private final RESTServiceHandler service;
     private final Webi webi;
 
-    public WebiModule(Webi webi,MVCRequestHandler service) {
+    public WebiModule(Webi webi,RESTServiceHandler service) {
         this.webi = webi;
         this.service = service;
     }
@@ -48,11 +48,11 @@ public class WebiModule extends AbstractQuercusModule {
 
     public class WebiWrapper {
 
-        private final MVCRequestHandler service;
+        private final RESTServiceHandler service;
         private final Env env;
         private final Map<String, ControllerWrapper> controllers = new HashMap<String, ControllerWrapper>();
 
-        public WebiWrapper(MVCRequestHandler webi, Env env) {
+        public WebiWrapper(RESTServiceHandler webi, Env env) {
             this.service = webi;
             this.env = env;
             
