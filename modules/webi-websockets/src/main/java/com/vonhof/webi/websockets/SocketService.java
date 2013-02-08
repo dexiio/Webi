@@ -10,6 +10,7 @@ import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +19,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
+
+import org.eclipse.jetty.io.EofException;
 import org.eclipse.jetty.websocket.WebSocket;
 
 public class SocketService<T extends SocketService.Client> {
@@ -93,7 +96,17 @@ public class SocketService<T extends SocketService.Client> {
             client.connection.sendMessage(output);
             
             return true;
+        } catch (EofException ex) {
+            //Ignore error
+            return false;
+        } catch (ClosedChannelException ex) {
+            //Ignore error
+            return false;
         } catch (Exception ex) {
+            if (ex.getMessage() != null && ex.getMessage().contains("Broken pipe")) {
+                //Ignore error - user disconnected quickly.
+                return false;
+            }
             Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
             return false;
         }
