@@ -78,7 +78,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return collection;
     }
         
-    protected BasicDBObject toDb(T doc) {
+    protected BasicDBObject toDb(Object doc) {
         try {
             return bs.convert(doc, BasicDBObject.class);
         } catch (MappingException ex) {
