@@ -30,6 +30,28 @@ public class MavenTest {
         assertTrue("Found more than 1 dependency (result includes itself)",artifacts.size() > 1);
     }
 
+
+    @Test
+    public void testAddRepository() throws Exception {
+        Maven mvn = new Maven();
+
+        boolean gotException = false;
+        try {
+            mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+
+        } catch(ArtifactResolutionException ex) {
+            gotException = true;
+        }
+        assertTrue("Artifact could not be resolved from maven central",gotException);
+
+        //Add additional maven repo.
+        mvn.addRepository("caucho","http://caucho.com/m2");
+
+        final Artifact artifact = mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+
+        assertTrue("Got jar file that doesn't exist in Maven Central repo", artifact.getFile().exists());
+    }
+
     @Test
     public void testAddArtifact() throws Exception {
         Maven mvn = new Maven();
