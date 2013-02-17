@@ -2,6 +2,7 @@ package com.vonhof.webi.maven;
 
 import org.junit.Test;
 import org.sonatype.aether.artifact.Artifact;
+import org.sonatype.aether.resolution.ArtifactResolutionException;
 import org.sonatype.aether.util.artifact.DefaultArtifact;
 
 import java.io.File;
@@ -16,9 +17,7 @@ public class MavenTest {
         Maven mvn = new Maven();
         final Artifact artifact = mvn.resolveArtifact("com.hazelcast:hazelcast:2.5");
 
-        assertNotNull(artifact);
-        assertTrue(artifact.getFile().exists());
-
+        assertTrue("Got a jar file that exists",artifact.getFile().exists());
     }
 
 
@@ -28,12 +27,21 @@ public class MavenTest {
 
         final List<Artifact> artifacts = mvn.resolveDependencies("org.springframework:spring-core:3.2.1.RELEASE");
 
-        assertTrue(artifacts.size() > 1);
+        assertTrue("Found more than 1 dependency (result includes itself)",artifacts.size() > 1);
     }
 
     @Test
     public void testAddArtifact() throws Exception {
         Maven mvn = new Maven();
+
+        boolean gotException = false;
+        try {
+            mvn.resolveArtifact("com.example:nothing:6.6.6");
+
+        } catch(ArtifactResolutionException ex) {
+            gotException = true;
+        }
+        assertTrue("Artifact could not be resolved",gotException);
 
         Artifact artifact = new DefaultArtifact("com.example:nothing:6.6.6")
                                 .setFile(new File("com/example/nothing-6.6.6.jar"));
@@ -42,10 +50,6 @@ public class MavenTest {
 
         Artifact resolvedArtifact = mvn.resolveArtifact("com.example:nothing:6.6.6");
 
-        assertNotNull(resolvedArtifact);
-    }
-
-    private File file(String path) {
-        return new File(getClass().getResource(path).getFile());
+        assertNotNull("Artifact can now be resolved",resolvedArtifact);
     }
 }
