@@ -61,7 +61,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     public void expose(Object obj) {
         urlMapper.expose(obj);
         webi.addBean(obj);
-    };
+    }
     
     public void expose(Object obj, String baseUrl) {
         urlMapper.expose(obj, baseUrl);
@@ -71,8 +71,9 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     public void expose(String id,Object obj) {
         urlMapper.expose(obj);
         webi.addBean(id,obj);
-    };
-    
+    }
+
+
     @Override
     public void handle(WebiContext ctxt) throws IOException, ServletException {
         

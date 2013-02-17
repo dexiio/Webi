@@ -2,6 +2,7 @@ package com.vonhof.webi;
 
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
+import com.vonhof.webi.file.FileRequestHandler;
 import com.vonhof.webi.session.SessionHandler;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -184,6 +185,7 @@ public final class Webi {
         beanContext.add(handler);
         return handler;
     }
+
     
     /**
      * Add filter at path
@@ -205,8 +207,7 @@ public final class Webi {
     
     /**
      * Add session resolver at path
-     * @param path
-     * @param handler 
+     * @param handler
      */
     public <T extends SessionHandler> T  add(T handler) {
         sessionHandlers.put(handler.getBasePath(), handler);
@@ -232,7 +233,7 @@ public final class Webi {
     public BeanContext getBeanContext() {
         return beanContext;
     }
-    
+
     /**
      * Internal webi jetty handler
      */
