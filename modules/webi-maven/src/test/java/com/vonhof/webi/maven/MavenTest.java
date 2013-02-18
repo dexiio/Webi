@@ -15,7 +15,7 @@ public class MavenTest {
     @Test
     public void testResolveArtifact() throws Exception {
         Maven mvn = new Maven();
-        final Artifact artifact = mvn.resolveArtifact("com.hazelcast:hazelcast:2.5");
+        final Artifact artifact = mvn.resolveArtifact("com.hazelcast:hazelcast:2.5",true);
 
         assertTrue("Got a jar file that exists",artifact.getFile().exists());
     }
@@ -35,21 +35,38 @@ public class MavenTest {
     public void testAddRepository() throws Exception {
         Maven mvn = new Maven();
 
+        mvn.removeLocalArtifact("com.caucho", "resin-hessian", "3.2.1");
+
         boolean gotException = false;
         try {
-            mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+            mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1",true);
 
         } catch(ArtifactResolutionException ex) {
             gotException = true;
         }
+
         assertTrue("Artifact could not be resolved from maven central",gotException);
 
         //Add additional maven repo.
         mvn.addRepository("caucho","http://caucho.com/m2");
 
-        final Artifact artifact = mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+        final Artifact artifact = mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1",true);
 
         assertTrue("Got jar file that doesn't exist in Maven Central repo", artifact.getFile().exists());
+    }
+
+    @Test
+    public void testLocalRepository() throws Exception {
+        Maven mvn = new Maven();
+        mvn.addRepository("caucho","http://caucho.com/m2");
+
+        mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+
+        //Init new maven instance (without the extra repo)
+        mvn = new Maven();
+        Artifact artifact = mvn.resolveArtifact("com.caucho", "resin-hessian", "3.2.1");
+
+        assertTrue("Got jar file that doesn't exist in Maven Central repo from local repo",artifact.getFile().exists());
     }
 
     @Test

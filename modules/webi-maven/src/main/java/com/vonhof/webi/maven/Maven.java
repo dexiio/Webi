@@ -1,6 +1,7 @@
 package com.vonhof.webi.maven;
 
 
+import org.apache.commons.io.FileUtils;
 import org.apache.maven.repository.internal.DefaultArtifactDescriptorReader;
 import org.apache.maven.repository.internal.DefaultVersionRangeResolver;
 import org.apache.maven.repository.internal.DefaultVersionResolver;
@@ -47,7 +48,7 @@ public class Maven {
     public Maven() {
         String userHome = System.getProperty("user.home");
 
-        localRepositoryPath = userHome+"/.m2/repository/";
+        localRepositoryPath = userHome+"/.m2/repository";
 
         locator.addService(ArtifactDescriptorReader.class, DefaultArtifactDescriptorReader.class);
         locator.addService(VersionResolver.class, DefaultVersionResolver.class);
@@ -63,6 +64,9 @@ public class Maven {
         addRepository("central","http://repo.maven.apache.org/maven2/",true,false);
     }
 
+    public Artifact resolveArtifact(String groupId,String artifactId,String version) throws ArtifactResolutionException, DependencyCollectionException {
+        return resolveArtifact(groupId, artifactId, version,false);
+    }
 
     /**
      * Resolve artifact.
@@ -72,12 +76,18 @@ public class Maven {
      * @param groupId
      * @param artifactId
      * @param version
+     * @param forceRemote
      * @return
      * @throws ArtifactResolutionException
      * @throws DependencyCollectionException
      */
-    public Artifact resolveArtifact(String groupId,String artifactId,String version) throws ArtifactResolutionException, DependencyCollectionException {
-        return resolveArtifact(String.format("%s:%s:%s",groupId,artifactId,version));
+    public Artifact resolveArtifact(String groupId,String artifactId,String version,boolean forceRemote) throws ArtifactResolutionException, DependencyCollectionException {
+        return resolveArtifact(String.format("%s:%s:%s",groupId,artifactId,version),forceRemote);
+    }
+
+
+    public Artifact resolveArtifact(String groupId,String artifactId,String type,String version) throws ArtifactResolutionException, DependencyCollectionException {
+        return resolveArtifact(groupId, artifactId, type, version,false);
     }
 
     /**
@@ -89,12 +99,13 @@ public class Maven {
      * @param artifactId
      * @param type
      * @param version
+     * @param forceRemote
      * @return
      * @throws ArtifactResolutionException
      * @throws DependencyCollectionException
      */
-    public Artifact resolveArtifact(String groupId,String artifactId,String type,String version) throws ArtifactResolutionException, DependencyCollectionException {
-        return resolveArtifact(String.format("%s:%s:%s:%s", groupId, artifactId, type, version));
+    public Artifact resolveArtifact(String groupId,String artifactId,String type,String version,boolean forceRemote) throws ArtifactResolutionException, DependencyCollectionException {
+        return resolveArtifact(String.format("%s:%s:%s:%s", groupId, artifactId, type, version),forceRemote);
     }
 
     /**
@@ -128,24 +139,44 @@ public class Maven {
         return nlg.getArtifacts(true);
     }
 
+    public Artifact resolveArtifact(String artifactId) throws DependencyCollectionException, ArtifactResolutionException {
+        return resolveArtifact(artifactId,false);
+    }
+
     /**
      * Resolve artifact by id. Downloads artifact from remote repository if needed.
      * Returned artifact instance has contains file pointer to locale file.
      *
      * @param artifactId
+     * @param forceRemote Ignore local repo
      * @return
      * @throws ArtifactResolutionException
      * @throws DependencyCollectionException
      */
-    public Artifact resolveArtifact(String artifactId) throws ArtifactResolutionException, DependencyCollectionException {
+    public Artifact resolveArtifact(String artifactId,boolean forceRemote) throws ArtifactResolutionException, DependencyCollectionException {
 
         Artifact artifact = new DefaultArtifact(artifactId);
-        Dependency dependency = new Dependency( artifact, "compile" );
+
+
+        if (!forceRemote) {
+            LocalArtifactRequest localArtifactRequest = new LocalArtifactRequest();
+            localArtifactRequest.setArtifact(artifact);
+            localArtifactRequest.setRepositories(getRemoteRepositories());
+            final LocalArtifactResult localArtifactResult = localRepoManager.find(session(), localArtifactRequest);
+
+            if (localArtifactResult.getFile() != null
+                    && localArtifactResult.getFile().exists()) {
+                return artifact.setFile(localArtifactResult.getFile());
+            }
+        }
+
+
 
         //Resolve artifact
         ArtifactRequest artifactRequest = new ArtifactRequest();
         artifactRequest.setArtifact(artifact);
         artifactRequest.setRepositories(getRemoteRepositories());
+
         final ArtifactResult result = repositorySystem.resolveArtifact(session(), artifactRequest);
 
         return result.getArtifact();
@@ -193,5 +224,17 @@ public class Maven {
         }
 
         return session;
+    }
+
+    public void removeLocalArtifact(String groupId, String artifactId, String version) {
+        final String jarPath = localRepoManager.getPathForLocalArtifact(new DefaultArtifact(groupId, artifactId, "jar", version));
+        final File jarFile = new File(localRepositoryPath+File.separator+jarPath);
+        if (jarFile.exists()) {
+            try {
+                FileUtils.deleteDirectory(jarFile.getParentFile());
+            } catch (IOException e) {
+                e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+            }
+        }
     }
 }
