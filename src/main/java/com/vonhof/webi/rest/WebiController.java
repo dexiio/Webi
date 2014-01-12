@@ -17,11 +17,16 @@ import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.session.WebiSession;
-import java.util.*;
-import java.util.Map.Entry;
+
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 /**
  * Various Webi specific methods
@@ -82,7 +87,7 @@ public class WebiController {
             if (field.hasAnnotation(Ignore.class)) {
                 continue;
             }
-            if (field.isStatic()) 
+            if (field.isStatic() || field.getField().isSynthetic())
                 continue;
             
             final ClassInfo fieldInfo = field.getType();
@@ -136,7 +141,7 @@ public class WebiController {
                     ObjectNode subModelNode = modelsNode.putObject(typeName);
                     writeModel(modelsNode,subModelNode, genType);
                 }
-            } else {
+            } else  {
                 
                 ObjectNode subModelNode = modelsNode.putObject(getTypeName(fieldType));
                 writeModel(modelsNode,subModelNode, fieldType);

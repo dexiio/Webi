@@ -9,6 +9,10 @@ import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpException;
+import org.eclipse.jetty.io.EofException;
+import org.eclipse.jetty.websocket.WebSocket;
+
+import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.channels.ClosedChannelException;
 import java.util.ArrayList;
@@ -18,10 +22,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
-
-import org.eclipse.jetty.io.EofException;
-import org.eclipse.jetty.websocket.WebSocket;
 
 public class SocketService<T extends SocketService.Client> {
 
@@ -158,6 +158,9 @@ public class SocketService<T extends SocketService.Client> {
                 final String evtType = typeNode.getValue().toLowerCase();
                 
                 final MethodInfo evtHandler = service.eventHandlers.get(evtType);
+                if (evtHandler == null) {
+                    throw new IllegalArgumentException("Event handler for event '" + evtType + "' not found");
+                }
                 
                 final ArrayNode argsNode = (ArrayNode) evtNode.get("args");
                 final Parameter[] parmTypes = evtHandler.getParameters().values().toArray(new Parameter[0]);
