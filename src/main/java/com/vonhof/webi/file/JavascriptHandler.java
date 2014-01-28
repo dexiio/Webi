@@ -10,19 +10,23 @@ import com.google.javascript.jscomp.SourceFile;
 import com.google.javascript.jscomp.SourceMap;
 import com.google.javascript.jscomp.deps.SortedDependencies.CircularDependencyException;
 import com.vonhof.webi.WebiContext;
+import org.apache.commons.io.IOUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import org.apache.commons.io.IOUtils;
 
 
 /**
@@ -93,8 +97,10 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         final String baseDir = this.getDocumentRoot()+req.getPath();
         
         //Run through all files that should be compiled
+        Map<String,List<PrioritizedSourceFile>> moduleSourceFiles = new HashMap<String, List<PrioritizedSourceFile>>();
+
         for(File file:files) {
-            
+
             //Calculate relative path to HTTP root path
             String relativePath = req.getBase()+file.getAbsolutePath().substring(this.getDocumentRoot().length()+1);
             
@@ -132,12 +138,25 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             if (!modules.containsKey(moduleName)) {
                 modules.put(moduleName, new JSModule(moduleName));
             }
-            
-            //@TODO: Do a real ordered implementation and not just this
-            if (order > 0) {
-                modules.get(moduleName).addFirst(sFile);
-            } else {
-                modules.get(moduleName).add(sFile);
+
+            if (!moduleSourceFiles.containsKey(moduleName)) {
+                moduleSourceFiles.put(moduleName, new LinkedList<PrioritizedSourceFile>());
+            }
+
+            moduleSourceFiles.get(moduleName).add(new PrioritizedSourceFile(sFile,order));
+        }
+
+        for(Entry<String,List<PrioritizedSourceFile>> moduleEntry: moduleSourceFiles.entrySet()) {
+
+            Collections.sort(moduleEntry.getValue(),new Comparator<PrioritizedSourceFile>() {
+                @Override
+                public int compare(PrioritizedSourceFile a, PrioritizedSourceFile b) {
+                    return b.prio - a.prio;
+                }
+            });
+
+            for(PrioritizedSourceFile file: moduleEntry.getValue()) {
+                modules.get(moduleEntry.getKey()).add(file.sourceFile);
             }
         }
         
@@ -149,6 +168,9 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
                 String[] parents = moduleName.split("\\.");
                 String parent = "";
                 for(int i = 0; i < parents.length-1;i++) {
+                    if (i > 0) {
+                        parent += ".";
+                    }
                     parent += parents[i];
                     if (modules.get(parent) != null) {
                         entry.getValue().addDependency(modules.get(parent));
@@ -187,6 +209,21 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
             req.setHeader("X-SourceMap",options.sourceMapOutputPath);
             IOUtils.write(source, req.getOutputStream());
+        }
+    }
+
+    private class PrioritizedSourceFile {
+        final SourceFile sourceFile;
+        final int prio;
+
+        private PrioritizedSourceFile(SourceFile sourceFile, int prio) {
+            this.sourceFile = sourceFile;
+            this.prio = prio;
+        }
+
+        private PrioritizedSourceFile(SourceFile sourceFile) {
+            this.sourceFile = sourceFile;
+            this.prio = -1;
         }
     }
 }
