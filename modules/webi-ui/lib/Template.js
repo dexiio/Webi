@@ -2,7 +2,7 @@
  * Template prototype that wraps a compiled template
  * @constructor
  */
-function Template() {
+function Template( nodeTree ) {
 
 }
 

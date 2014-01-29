@@ -27,10 +27,11 @@ exports.compile = {
     // setup here
     done();
   },
-  'no args': function(test) {
+  'can_bind_variable_to_template': function(test) {
     test.expect(1);
     // tests here
-    test.equal(Webi.compile(), 'test', 'should be "test".');
+    var template = Webi.compile("<div>{{myVar}}</div>");
+    test.equal(template.render({myVar:'test'}), '<div>test</div>', 'should be "test".');
     test.done();
   }
 };
