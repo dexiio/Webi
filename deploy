@@ -1,22 +1,22 @@
-mvn deploy
+mvn clean deploy
 cd modules/webi-client
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-db
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-maven
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-mongo
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-php
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-postgres
-mvn deploy
+mvn clean deploy
 cd ../..
 cd modules/webi-websockets
-mvn deploy
+mvn clean deploy
 cd ../..
