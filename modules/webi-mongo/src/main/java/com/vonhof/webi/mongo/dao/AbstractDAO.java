@@ -6,12 +6,13 @@ import com.vonhof.babelshark.exception.MappingException;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.db.dto.ResultSetDTO;
 import com.vonhof.webi.mongo.dto.BasicDTO;
+
+import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
 
 /**
  *
@@ -109,7 +110,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return out;
     }
     
-    protected T fromDb(DBObject dbdoc) {
+    public T fromDb(DBObject dbdoc) {
         return fromDb(dbdoc, entryClass);
     }
     
