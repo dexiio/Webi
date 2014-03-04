@@ -2,7 +2,6 @@ package com.vonhof.webi;
 
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
-import com.vonhof.webi.file.FileRequestHandler;
 import com.vonhof.webi.session.SessionHandler;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -238,6 +237,8 @@ public final class Webi {
      * Internal webi jetty handler
      */
     private class Handler extends AbstractHandler {
+
+        private final ThreadLocal<WebiContext> context = new ThreadLocal<WebiContext>();
         
         @Override
         public void handle(String path,
@@ -254,9 +255,7 @@ public final class Webi {
             RequestHandler handler = requestHandlers.get(path);
             
             final SessionHandler sessionResolver = sessionHandlers.get(path);
-            
-            
-            
+
             //Hack for path - make a proper normalization process for paths
             if (handler != null) {
                 path = requestHandlers.trimContext(path);
@@ -265,17 +264,25 @@ public final class Webi {
             final WebiContext wr = new WebiContext(basePath,path,
                                                     request,response,
                                                    sessionResolver);
-            
-            
-            for(Filter filter:filters.getAll(path)) {
-                if (!filter.apply(wr))
-                    return;
-            }
-            
-            if (handler != null) {
-                handler.handle(wr);
-            } else {
-                response.sendError(404,"Not found");
+
+            context.set(wr);
+            beanContext.addThreadLocal(wr.getSession());
+
+            try {
+
+                for(Filter filter:filters.getAll(path)) {
+                    if (!filter.apply(wr))
+                        return;
+                }
+
+                if (handler != null) {
+                    handler.handle(wr);
+                } else {
+                    response.sendError(404,"Not found");
+                }
+            } finally {
+                //Reset webi context for this thread , just in case
+                beanContext.clearThreadLocal(wr.getSession());
             }
         }
     }
