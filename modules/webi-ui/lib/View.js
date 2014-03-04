@@ -1,13 +1,15 @@
-function View() {
+(function(scope) {
+    function View() {
 
-}
+    }
 
-View.prototype = {
-    /**
-     * The template source
-     * @type Template
-     */
-    _tmpl:null
-};
+    View.prototype = {
+        /**
+         * The template source
+         * @type Template
+         */
+        _tmpl: null
+    };
 
-module.exports = View;
+    scope.View = View;
+})(this);

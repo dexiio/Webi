@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="utf-8">
+    <title>Simple</title>
+
+    <script src="lib/utils.js"></script>
+    <script src="lib/Observable.js"></script>
+    <script src="lib/Template.js"></script>
+    <script src="lib/Compiler.js"></script>
+    <script src="lib/View.js"></script>
+    <script src="lib/Webi.js"></script>
+    <script src="lib/handlers/each.js"></script>
+</head>
+<body>
+
+    <div id="container">
+        <form submit="submitHandler()" title="Title is {{formTitle}} for {{formName}}">
+            {{other.other}}
+            <formrow label="{{labelTitle}}">
+                 <input type="text" model="someVar" />
+            </formrow>
+        </form>
+
+        <ul>
+            {{other.test}} or
+            {{formTitle}}
+            <li each="entries" as="entry">
+                <span class="{{entry.className}}">{{entry.name}}</span>
+            </li>
+        </ul>
+    </div>
+
+
+    <script src="index.js"></script>
+</body>
+</html>
