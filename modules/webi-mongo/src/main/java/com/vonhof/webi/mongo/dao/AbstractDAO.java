@@ -34,7 +34,11 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         this.collectionName = collectionName;
         this.entryClass = entryClass;
     }
-    
+
+    public Class<T> getEntryClass() {
+        return entryClass;
+    }
+
     @Override
     public void afterInject() {
         collection = db.getCollection(collectionName);
