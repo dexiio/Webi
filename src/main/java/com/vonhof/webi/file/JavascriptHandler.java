@@ -41,9 +41,19 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
     
     private final Map<String,String> sourceMaps = new HashMap<String, String>();
 
+    private boolean minify = true;
+
     public JavascriptHandler() {
         super("text/javascript");
         Compiler.setLoggingLevel(Level.SEVERE);
+    }
+
+    public boolean isMinify() {
+        return minify;
+    }
+
+    public void setMinify(boolean minify) {
+        this.minify = minify;
     }
 
     @Override
@@ -79,7 +89,12 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         }
         
         final CompilerOptions options = new CompilerOptions();
-        CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+        if (minify) {
+            CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+        } else {
+            CompilationLevel.WHITESPACE_ONLY.setOptionsForCompilationLevel(options);
+        }
+
         options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT5);
         options.sourceMapDetailLevel = SourceMap.DetailLevel.ALL;
         options.sourceMapOutputPath = sourceMapPath;
@@ -194,7 +209,8 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         
         //Must generate sources before accessing source map
         String source = compiler.toSource();
-        
+
+
         //Build source map
         StringBuilder sb = new StringBuilder();
         result.sourceMap.validate(true);
@@ -205,9 +221,11 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             //Output source map
             IOUtils.write(sourceMaps.get(sourceName), req.getOutputStream());
         } else {
-            //Add source map special comment to source and output compiled js
-            source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
-            req.setHeader("X-SourceMap",options.sourceMapOutputPath);
+            if (minify) {
+                //Add source map special comment to source and output compiled js
+                source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
+                req.setHeader("X-SourceMap",options.sourceMapOutputPath);
+            }
             IOUtils.write(source, req.getOutputStream());
         }
     }
