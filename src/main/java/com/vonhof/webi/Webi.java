@@ -17,7 +17,11 @@ import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
+import org.eclipse.jetty.server.handler.GzipHandler;
+import org.eclipse.jetty.server.handler.HandlerCollection;
 import org.eclipse.jetty.server.nio.SelectChannelConnector;
+import org.eclipse.jetty.servlet.ServletContextHandler;
 
 /**
  * Main Webi method
@@ -122,7 +126,12 @@ public final class Webi {
      */
     public void start() throws Exception {
         beanContext.inject(true);
-        server.setHandler(new Handler());
+
+        GzipHandler gzipHandler = new GzipHandler();
+        gzipHandler.setHandler(new Handler());
+        gzipHandler.setMimeTypes("text/html,text/css,text/javascript,application/json,image/gif,image/jpeg,image/png");
+
+        server.setHandler(gzipHandler);
         server.start();
         try {
             server.join();
