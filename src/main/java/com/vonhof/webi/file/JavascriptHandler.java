@@ -91,8 +91,6 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
         final CompilerOptions options = new CompilerOptions();
         if (minify) {
             CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-        } else {
-            CompilationLevel.WHITESPACE_ONLY.setOptionsForCompilationLevel(options);
         }
 
         options.setLanguageIn(CompilerOptions.LanguageMode.ECMASCRIPT5);
@@ -221,11 +219,11 @@ public class JavascriptHandler extends PreprocessingRequestHandler {
             //Output source map
             IOUtils.write(sourceMaps.get(sourceName), req.getOutputStream());
         } else {
-            if (minify) {
-                //Add source map special comment to source and output compiled js
-                source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
-                req.setHeader("X-SourceMap",options.sourceMapOutputPath);
-            }
+
+            //Add source map special comment to source and output compiled js
+            source += "\n//@ sourceMappingURL="+options.sourceMapOutputPath;
+            req.setHeader("X-SourceMap",options.sourceMapOutputPath);
+
             IOUtils.write(source, req.getOutputStream());
         }
     }
