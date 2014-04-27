@@ -37,10 +37,11 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     
     @Inject
     private BabelSharkInstance bs;
-    
+
     private final UrlMapper urlMapper;
     private ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
-    
+    private List<String> okOrigins = new ArrayList<String>();
+
 
     public RESTServiceHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
@@ -73,14 +74,24 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
         webi.addBean(id,obj);
     }
 
+    public void addAllowedOrigin(String host) {
+        okOrigins.add(host.toLowerCase());
+    }
+
 
     @Override
     public void handle(WebiContext ctxt) throws IOException, ServletException {
         
         setResponseType(ctxt);
 
-        ctxt.setHeader("Access-Control-Allow-Origin", "*");
-        ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept");
+        String origin = ctxt.getRequest().getHeader("Origin");
+
+        if (origin != null && !origin.isEmpty()) {
+            if (okOrigins.contains(origin)) {
+                ctxt.setHeader("Access-Control-Allow-Origin", origin);
+                ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept, api-key");
+            }
+        }
         
         Object output = null;
 
