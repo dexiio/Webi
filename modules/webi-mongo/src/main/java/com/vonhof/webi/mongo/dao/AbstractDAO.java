@@ -39,7 +39,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return entryClass;
     }
 
-    public void addShardKey(String key) {
+    public void addShardKey(String ... keys) {
         //TODO
     }
 
