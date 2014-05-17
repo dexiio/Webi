@@ -23,14 +23,15 @@ import javax.inject.Inject;
 
 /**
  * Handles dependency injection
+ *
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class BeanContext {
     private final static Logger LOG = Logger.getLogger(BeanContext.class.getName());
-    private Map<Class,Object> beansByClass = new HashMap<Class, Object>();
-    private Map<String,Object> beansById = new HashMap<String, Object>();
+    private Map<Class, Object> beansByClass = new HashMap<Class, Object>();
+    private Map<String, Object> beansById = new HashMap<String, Object>();
 
-    private Map<Class,ThreadLocalWrapper> wrappersByClass = new HashMap<Class, ThreadLocalWrapper>();
+    private Map<Class, ThreadLocalWrapper> wrappersByClass = new HashMap<Class, ThreadLocalWrapper>();
 
     private Set<Object> injected = new HashSet<Object>();
 
@@ -42,22 +43,27 @@ public class BeanContext {
     public Map<String, Object> getBeans() {
         return beansById;
     }
-    
-    public <T> void add(Class<T> clz,T bean) {
+
+    public <T> void add(Class<T> clz, T bean) {
         beansByClass.put(clz, bean);
+        if (bean instanceof AfterAdd) {
+            ((AfterAdd) bean).afterAdd(this);
+        }
         inject(bean);
     }
-    
+
     public <T> void add(T bean) {
-        beansByClass.put(bean.getClass(), bean);
-        inject(bean);
+        add((Class<T>)bean.getClass(), bean);
     }
-    
-    public <T> void add(String id,T bean) {
-        beansById.put(id,bean);
+
+    public <T> void add(String id, T bean) {
+        beansById.put(id, bean);
+        if (bean instanceof AfterAdd) {
+            ((AfterAdd) bean).afterAdd(this);
+        }
         add(bean);
     }
-    
+
     public <T> T get(Class<T> beanClz) {
         Object obj = beansByClass.get(beanClz);
         if (obj instanceof ThreadLocal) {
@@ -65,7 +71,7 @@ public class BeanContext {
         }
         return (T) obj;
     }
-    
+
     public <T> T get(String id) {
         Object obj = beansById.get(id);
         if (obj instanceof ThreadLocal) {
@@ -73,34 +79,36 @@ public class BeanContext {
         }
         return (T) obj;
     }
-    
+
     public void inject() {
         inject(false);
     }
+
     public void inject(boolean required) {
-        for(Entry<Class,Object> entry:beansByClass.entrySet()) {
-            inject(entry.getValue(),required);
+        for (Entry<Class, Object> entry : beansByClass.entrySet()) {
+            inject(entry.getValue(), required);
         }
-        
-        for(Entry<String,Object> entry:beansById.entrySet()) {
-            inject(entry.getValue(),required);
+
+        for (Entry<String, Object> entry : beansById.entrySet()) {
+            inject(entry.getValue(), required);
         }
     }
-    
+
     public <T> T inject(T obj) {
-        return (T)inject(obj, false);
+        return (T) inject(obj, false);
     }
-    public <T> T inject(T obj,boolean required) {
+
+    public <T> T inject(T obj, boolean required) {
         ClassInfo<?> clz = ClassInfo.from(obj.getClass());
-        Map<String,FieldInfo> fields = clz.getFields();
+        Map<String, FieldInfo> fields = clz.getFields();
         boolean injectedAll = true;
-        for(FieldInfo f:fields.values()) {
+        for (FieldInfo f : fields.values()) {
             Inject annotation = f.getAnnotation(Inject.class);
             f.forceAccessible();
             injected.add(obj);
             try {
                 Object value = f.get(obj);
-                if (annotation != null 
+                if (annotation != null
                         && value == null) {
                     Object bean = get(f.getName());
                     if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
@@ -116,13 +124,13 @@ public class BeanContext {
                         if (required) {
                             throw new RuntimeException(
                                     String.format("No com.vonhof.webi.bean registered for class: %s in %s",
-                                    f.getType().getName(),
-                                    obj.getClass().getName()));
+                                            f.getType().getName(),
+                                            obj.getClass().getName()));
                         }
                     }
                 }
-                
-                if (value != null 
+
+                if (value != null
                         && ReflectUtils.isBean(value.getClass())
                         && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
                     //Recurse
@@ -138,9 +146,9 @@ public class BeanContext {
         }
         //Only call if all fields were injected (it may be too soon)
         if (injectedAll && obj instanceof AfterInject) {
-            ((AfterInject)obj).afterInject();
+            ((AfterInject) obj).afterInject();
         }
-        
+
         return obj;
     }
 

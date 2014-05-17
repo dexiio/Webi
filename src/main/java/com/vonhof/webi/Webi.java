@@ -255,8 +255,8 @@ public final class Webi {
                 HttpServletRequest request,
                 HttpServletResponse response)
                 throws IOException, ServletException {
-            
-            
+
+
             
             PathPattern basePattern = requestHandlers.getPattern(path);
             String basePath = basePattern != null ? basePattern.toString() : "/";

@@ -15,22 +15,22 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class AbstractDAO<T extends BasicDTO> implements AfterInject {
-    protected
-    @Inject DB db;
-    
-    protected
-    @Inject BabelSharkInstance bs;
-    
+
+    protected @Inject Mongo mongo;
+
+    protected @Inject DB db;
+
+    protected @Inject BabelSharkInstance bs;
+
     private final String collectionName;
     private final Class<T> entryClass;
     private DBCollection collection;
     private List<DBObject> sortKeys = new ArrayList<DBObject>();
 
-    public AbstractDAO(String collectionName,Class<T> entryClass) {
+    public AbstractDAO(String collectionName, Class<T> entryClass) {
         this.collectionName = collectionName;
         this.entryClass = entryClass;
     }
@@ -43,46 +43,60 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     public void afterInject() {
         collection = db.getCollection(collectionName);
     }
-    
-    
-    protected void addSortKey(String field,int dir) {
+
+
+    protected void addShardKey(String... shardKeys) {
+
+        DB adminDb = mongo.getDB("admin");
+
+        final BasicDBObject shardKeyObject = new BasicDBObject();
+        for (String key : shardKeys) {
+            shardKeyObject.put(key, 1);
+        }
+
+        final BasicDBObject shardCollectionCmd = new BasicDBObject("shardcollection", String.format("%s.%s", db.getName(), collectionName));
+        shardCollectionCmd.put("key", shardKeyObject);
+
+        adminDb.command(shardCollectionCmd);
+    }
+
+    protected void addSortKey(String field, int dir) {
         sortKeys.add(new BasicDBObject(field, dir));
     }
-    
-    protected void ensureIndex(String ... fields) {
+
+    protected void ensureIndex(String... fields) {
         if (fields.length == 0) {
             return;
         }
-        
+
         BasicDBObject keys = new BasicDBObject();
-        for(String field:fields)  {
-            keys.put(field,1);
+        for (String field : fields) {
+            keys.put(field, 1);
         }
-        
+
         coll().ensureIndex(keys);
     }
-    
-    protected void ensureSortedIndex(String ... fields) {
+
+    protected void ensureSortedIndex(String... fields) {
         if (fields.length == 0) {
             return;
         }
-        for(DBObject sortKey:sortKeys) {
+        for (DBObject sortKey : sortKeys) {
 
             BasicDBObject keys = new BasicDBObject();
-            for(String field:fields)  {
-                keys.put(field,1);
+            for (String field : fields) {
+                keys.put(field, 1);
             }
             keys.putAll(sortKey);
             coll().ensureIndex(keys);
         }
     }
-    
-    
-    
+
+
     public DBCollection coll() {
         return collection;
     }
-        
+
     protected BasicDBObject toDb(Object doc) {
         try {
             return bs.convert(doc, BasicDBObject.class);
@@ -91,35 +105,40 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         }
         return null;
     }
-    
+
     protected List<T> toList(final DBCursor c) {
-        List<T> out = new ArrayList<T>();
-        while(c.hasNext()) {
-            out.add(fromDb(c.next()));
+        try {
+            List<T> out = new ArrayList<T>();
+            while (c.hasNext()) {
+                out.add(fromDb(c.next()));
+            }
+            return out;
+        } finally {
+            c.close();
         }
-        return out;
+
     }
-    
+
     protected DBObject getListFields() {
         return null;
     }
 
-    
+
     protected ResultSetDTO<T> toResultSet(final DBCursor c) {
         ResultSetDTO<T> out = new ResultSetDTO<T>();
-        while(c.hasNext()) {
+        while (c.hasNext()) {
             out.getRows().add(fromDb(c.next()));
         }
         out.setTotalRows(c.count());
         return out;
     }
-    
+
     public T fromDb(DBObject dbdoc) {
         return fromDb(dbdoc, entryClass);
     }
-    
-    protected <U> U fromDb(DBObject dbdoc,Class<U> clz) {
-        if (dbdoc == null) 
+
+    protected <U> U fromDb(DBObject dbdoc, Class<U> clz) {
+        if (dbdoc == null)
             return null;
         try {
             return bs.convert(dbdoc, clz);
@@ -128,50 +147,51 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         }
         return null;
     }
-    
-    public T get(String id,String ... fields) {
+
+    public T get(String id, String... fields) {
         BasicDBObject doc = new BasicDBObject();
         doc.put("_id", id);
         DBObject out = null;
         if (fields.length > 0) {
             BasicDBObject fieldsObj = new BasicDBObject();
-            for(String field:fields) {
-                fieldsObj.put(field,true);
+            for (String field : fields) {
+                fieldsObj.put(field, true);
             }
-            out = coll().findOne(doc,fieldsObj);
+            out = coll().findOne(doc, fieldsObj);
         } else {
             out = coll().findOne(doc);
         }
-        
+
         return fromDb(out);
     }
-    
-    public ResultSetDTO<T> getList(String ... ids) {
+
+    public ResultSetDTO<T> getList(String... ids) {
         DBObject q = QueryBuilder.start("_id").in(ids).get();
-        
+
         return toResultSet(queryForList(q));
     }
-    
+
     public ResultSetDTO<T> getList(Collection<String> ids) {
         DBObject q = QueryBuilder.start("_id").in(ids).get();
         return toResultSet(queryForList(q));
     }
-    
-    public ResultSetDTO<T> getAll(int offset,int limit) {
+
+    public ResultSetDTO<T> getAll(int offset, int limit) {
         return toResultSet(queryForList().skip(offset).limit(limit));
     }
-    
+
     public ResultSetDTO<T> getAll() {
         return toResultSet(queryForList());
     }
-    
+
     protected DBCursor queryForList() {
         return queryForList(new BasicDBObject());
     }
+
     protected DBCursor queryForList(DBObject query) {
-        return coll().find(query,getListFields());
+        return coll().find(query, getListFields());
     }
-    
+
     public T create(T doc) {
         BasicDBObject dbDoc = toDb(doc);
         WriteResult out = coll().insert(dbDoc);
@@ -179,19 +199,19 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
             return doc;
         return null;
     }
-    
+
     public T update(T doc) {
         BasicDBObject qDoc = new BasicDBObject("_id", doc.getId());
         BasicDBObject dbDoc = toDb(doc);
-        WriteResult out = coll().update(qDoc,dbDoc);
+        WriteResult out = coll().update(qDoc, dbDoc);
         return doc;
     }
-    
+
     public boolean delete(String id) {
         BasicDBObject doc = new BasicDBObject();
         doc.put("_id", id);
         WriteResult out = coll().remove(doc);
         return (out.getError() == null || out.getError().isEmpty());
     }
-    
+
 }
