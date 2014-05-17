@@ -39,10 +39,6 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return entryClass;
     }
 
-    public void addShardKey(String ... keys) {
-        //TODO
-    }
-
     @Override
     public void afterInject() {
         collection = db.getCollection(collectionName);
