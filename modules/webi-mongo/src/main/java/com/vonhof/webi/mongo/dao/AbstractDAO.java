@@ -75,7 +75,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
             keys.put(field, 1);
         }
 
-        coll().ensureIndex(keys);
+        coll().createIndex(keys);
     }
 
     protected void ensureSortedIndex(String... fields) {
@@ -89,7 +89,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
                 keys.put(field, 1);
             }
             keys.putAll(sortKey);
-            coll().ensureIndex(keys);
+            coll().createIndex(keys);
         }
     }
 
