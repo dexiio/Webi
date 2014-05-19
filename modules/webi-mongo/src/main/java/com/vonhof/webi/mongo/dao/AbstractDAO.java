@@ -57,7 +57,6 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         }
         final BasicDBObject shardCollectionCmd = new BasicDBObject("shardcollection", String.format("%s.%s", db.getName(), collectionName));
         shardCollectionCmd.put("key", shardKeyObject);
-
         adminDb.command(shardCollectionCmd);
     }
 
