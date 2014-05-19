@@ -12,11 +12,8 @@ import net.sf.cglib.proxy.MethodProxy;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.inject.Inject;
@@ -34,6 +31,7 @@ public class BeanContext {
     private Map<Class, ThreadLocalWrapper> wrappersByClass = new HashMap<Class, ThreadLocalWrapper>();
 
     private Set<Object> injected = new HashSet<Object>();
+    private List<AfterInject> afterInjectionCalled = new LinkedList<AfterInject>();
 
     public BeanContext() {
         //Add myself
@@ -145,7 +143,10 @@ public class BeanContext {
             }
         }
         //Only call if all fields were injected (it may be too soon)
-        if (injectedAll && obj instanceof AfterInject) {
+        if (injectedAll &&
+                obj instanceof AfterInject &&
+                !afterInjectionCalled.contains(obj)) {
+            afterInjectionCalled.add(((AfterInject) obj));
             ((AfterInject) obj).afterInject();
         }
 

@@ -10,6 +10,7 @@ import com.vonhof.webi.mongo.dto.BasicDTO;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -116,7 +117,25 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         } finally {
             c.close();
         }
+    }
 
+    protected Iterator<T> toIterator(final DBCursor c) {
+        return new Iterator<T>() {
+            @Override
+            public boolean hasNext() {
+                return c.hasNext();
+            }
+
+            @Override
+            public T next() {
+                return fromDb(c.next());
+            }
+
+            @Override
+            public void remove() {
+                c.remove();
+            }
+        };
     }
 
     protected DBObject getListFields() {
