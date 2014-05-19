@@ -11,9 +11,6 @@ cd ../..
 cd modules/webi-mongo
 mvn clean deploy
 cd ../..
-cd modules/webi-php
-mvn clean deploy
-cd ../..
 cd modules/webi-postgres
 mvn clean deploy
 cd ../..
