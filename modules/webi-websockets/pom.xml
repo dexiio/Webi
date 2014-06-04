@@ -18,13 +18,8 @@
         <repository>
             <id>nexus</id>
             <name>Releases</name>
-            <url>http://serv3.vonhofmeister.com:8081/nexus/content/repositories/releases/</url>
+            <url>${nexus.url}</url>
         </repository>
-        <snapshotRepository>
-            <id>nexus</id>
-            <name>Snapshots</name>
-            <url>http://serv3.vonhofmeister.com:8081/nexus/content/repositories/snapshots/</url>
-        </snapshotRepository>
     </distributionManagement>
   
   <build>
