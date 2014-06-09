@@ -219,10 +219,18 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return null;
     }
 
+    public void createBulk(T ... docs) {
+        BasicDBObject[] dbDocs = new BasicDBObject[docs.length];
+        for(int i = 0 ; i < docs.length; i++) {
+            dbDocs[i] = toDb(docs[i]);
+        }
+        coll().insert(dbDocs);
+    }
+
     public T update(T doc) {
         BasicDBObject qDoc = new BasicDBObject("_id", doc.getId());
         BasicDBObject dbDoc = toDb(doc);
-        WriteResult out = coll().update(qDoc, dbDoc);
+        coll().update(qDoc, dbDoc);
         return doc;
     }
 
