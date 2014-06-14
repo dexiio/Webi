@@ -4,6 +4,8 @@ import com.vonhof.babelshark.BabelShark;
 import com.vonhof.babelshark.BabelSharkInstance;
 import com.vonhof.babelshark.Input;
 import com.vonhof.babelshark.Output;
+import org.apache.commons.io.IOUtils;
+
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -39,13 +41,19 @@ public class RESTClient {
         
         conn.setRequestMethod(method.toUpperCase());
         conn.setInstanceFollowRedirects(true);
+        if (body != null) {
+            conn.setRequestProperty("Content-Type", contentType);
+        }
+
         if (!req.headers.isEmpty()) {
+
             for(Entry<String,String> header:req.headers.entrySet()) {
                 conn.addRequestProperty(header.getKey(), header.getValue());
             }
         }
         
         if (body != null) {
+
             conn.setDoOutput(true);
             bs.write(new Output(conn.getOutputStream(),contentType), body);
         }
@@ -55,9 +63,11 @@ public class RESTClient {
             T out = bs.read(new Input(conn.getInputStream(), responseType), responseClass);
             conn.disconnect();
             return out;
+        } else {
+            String out = IOUtils.toString(conn.getInputStream());
+            conn.disconnect();
+            return (T) out;
         }
-        
-        return null;
     }
     
     public static Request from(String baseUrl) {

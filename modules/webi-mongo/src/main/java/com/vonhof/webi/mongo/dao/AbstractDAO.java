@@ -203,6 +203,10 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return toResultSet(queryForList());
     }
 
+    public Iterator<T> iterateAll() {
+        return toIterator(queryForList());
+    }
+
     protected DBCursor queryForList() {
         return queryForList(new BasicDBObject());
     }
