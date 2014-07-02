@@ -154,6 +154,10 @@ public class BeanContext {
     }
 
     public <T> void addThreadLocal(T bean) {
+        if (bean == null) {
+            return;
+        }
+
         final Class beanClass = bean.getClass();
         addThreadLocal(beanClass, bean);
     }
