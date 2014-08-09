@@ -9,8 +9,8 @@ import java.util.List;
  */
 public class ResultSetDTO<T> {
     private List<T> rows = new ArrayList<T>();
-    private int totalRows;
-    private int offset;
+    private long totalRows;
+    private long offset;
 
     public ResultSetDTO(List<T> rows) {
         this.rows = rows;
@@ -22,7 +22,7 @@ public class ResultSetDTO<T> {
     }
     
 
-    public int getOffset() {
+    public long getOffset() {
         return offset;
     }
 
@@ -30,11 +30,11 @@ public class ResultSetDTO<T> {
         this.offset = offset;
     }
 
-    public int getTotalRows() {
+    public long getTotalRows() {
         return totalRows;
     }
 
-    public void setTotalRows(int totalRows) {
+    public void setTotalRows(long totalRows) {
         this.totalRows = totalRows;
     }
 
