@@ -16,12 +16,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.handler.AbstractHandler;
-import org.eclipse.jetty.server.handler.ContextHandlerCollection;
-import org.eclipse.jetty.server.handler.GzipHandler;
-import org.eclipse.jetty.server.handler.HandlerCollection;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
-import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlets.gzip.GzipHandler;
 
 /**
  * Main Webi method
@@ -81,8 +78,10 @@ public final class Webi {
      */
     public Webi(int port) {
         server = new Server();
-        final SelectChannelConnector connector = new SelectChannelConnector();
+
+        final ServerConnector connector = new ServerConnector(server);
         connector.setPort(port);
+        connector.setReuseAddress(true);
         //connector.setAcceptors((Runtime.getRuntime().availableProcessors()*2)-2);
         server.setConnectors(new Connector[]{connector});
         
@@ -168,7 +167,7 @@ public final class Webi {
             public void run() {
                 try {
                     if (graceful)
-                        server.setGracefulShutdown(5000);
+                        server.setStopTimeout(5000);
                     server.stop();
                 } catch(Throwable ex) {
 
