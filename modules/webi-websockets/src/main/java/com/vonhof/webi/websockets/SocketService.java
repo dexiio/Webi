@@ -10,7 +10,9 @@ import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpException;
 import org.eclipse.jetty.io.EofException;
-import org.eclipse.jetty.websocket.WebSocket;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
@@ -23,7 +25,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SocketService<T extends SocketService.Client> {
+public class SocketService<T extends SocketService.Client>  {
 
     @Inject
     private BabelSharkInstance bs;
@@ -31,6 +33,7 @@ public class SocketService<T extends SocketService.Client> {
     private final ConcurrentLinkedQueue<Client> clients = new ConcurrentLinkedQueue<Client>();
     private final Map<String, MethodInfo> eventHandlers = new HashMap<String, MethodInfo>();
     private final ClassInfo<T> clientClass;
+    private String contentType = "json";
     
     public SocketService(Class<T> clientClass) {
         this.clientClass = ClassInfo.from(clientClass);
@@ -40,8 +43,15 @@ public class SocketService<T extends SocketService.Client> {
     public ClassInfo<T> getClientClass() {
         return clientClass;
     }
-    
-    
+
+
+    public String getContentType() {
+        return contentType;
+    }
+
+    public void setContentType(String contentType) {
+        this.contentType = contentType;
+    }
 
     private void readEventHandlers() {
         List<MethodInfo> methods = clientClass.getMethods();
@@ -87,13 +97,11 @@ public class SocketService<T extends SocketService.Client> {
     
     private boolean send(Client client, Event evt) {
         try {
-            if (!client.connection.isOpen()) {
+            if (!client.session.isOpen()) {
                 return false;
             }
-            final String contentType = bs.getMimeType(client.connection.getProtocol(),true);
             final String output = bs.writeToString(evt, contentType);
-            
-            client.connection.sendMessage(output);
+            client.session.getRemote().sendString(output);
             
             return true;
         } catch (EofException ex) {
@@ -114,11 +122,11 @@ public class SocketService<T extends SocketService.Client> {
     
     private boolean send(Client client, byte[] data) {
         try {
-            if (!client.connection.isOpen()) {
+            if (!client.session.isOpen()) {
                 return false;
             }
             
-            client.connection.sendMessage(data, 0, data.length);
+            client.session.getRemote().sendString(new String(data,"UTF-8"));
             return true;
         } catch (Exception ex) {
             Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
@@ -132,8 +140,8 @@ public class SocketService<T extends SocketService.Client> {
         return (T) client;
     }
 
-    public static class Client<T extends Client> implements WebSocket.OnTextMessage {
-        private Connection connection;
+    public static class Client<T extends Client> extends WebSocketAdapter {
+        private Session session;
         
         @Inject
         private SocketService<T> service;
@@ -141,51 +149,6 @@ public class SocketService<T extends SocketService.Client> {
         @Inject
         private BabelSharkInstance bs;
 
-        @Override
-        public void onOpen(Connection connection) {
-            service.clients.add(this);
-            this.connection = connection;
-        }
-
-        @Override
-        public final void onMessage(String data) {
-            if (data.isEmpty() || data.equals("{}") || data.equals("[]"))
-                return;
-            try {
-                final ObjectNode evtNode = bs.read(data, bs.getDefaultType(), ObjectNode.class);
-                
-                final ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
-                final String evtType = typeNode.getValue().toLowerCase();
-                
-                final MethodInfo evtHandler = service.eventHandlers.get(evtType);
-                if (evtHandler == null) {
-                    throw new IllegalArgumentException("Event handler for event '" + evtType + "' not found");
-                }
-                
-                final ArrayNode argsNode = (ArrayNode) evtNode.get("args");
-                final Parameter[] parmTypes = evtHandler.getParameters().values().toArray(new Parameter[0]);
-
-                int argI = 0;
-                
-                Object[] args = new Object[parmTypes.length];
-                for (int i = 0; i < args.length; i++) {
-                    Parameter p = parmTypes[i];
-                    if (p.getType().inherits(Client.class)) {
-                        args[i] = this;
-                        continue;
-                    }
-                    SharkNode arg = argsNode.get(argI);
-                    if (arg != null) {
-                        args[i] = bs.read(arg, p.getType());
-                    }
-                    argI++;
-                }
-
-                evtHandler.invoke(this, args);
-            } catch (Exception ex) {
-                handleException(ex);
-            }
-        }
 
         public SocketService<T> getService() {
             return service;
@@ -209,19 +172,72 @@ public class SocketService<T extends SocketService.Client> {
         }
         
         public final void send(byte[] data) {
-            service.send(this,data);
+            service.send(this, data);
         }
 
-        public void handleException(Throwable ex) {
-            if (ex instanceof InvocationTargetException 
+        @Override
+        public void onWebSocketBinary(byte[] bytes, int i, int i2) {
+
+        }
+
+        @Override
+        public void onWebSocketClose(int closeCode, String msg) {
+            service.clients.remove(this);
+        }
+
+        @Override
+        public void onWebSocketConnect(Session session) {
+            service.clients.add(this);
+            this.session = session;
+        }
+
+        @Override
+        public void onWebSocketError(Throwable ex) {
+            if (ex instanceof InvocationTargetException
                     && ex.getCause() instanceof HttpException)
                 return;
             Logger.getLogger(SocketService.class.getName()).
                     log(Level.SEVERE, null, ex);
         }
 
-        public void onClose(int closeCode, String message) {
-            service.clients.remove(this);
+        @Override
+        public void onWebSocketText(String data) {
+            if (data.isEmpty() || data.equals("{}") || data.equals("[]"))
+                return;
+            try {
+                final ObjectNode evtNode = bs.read(data, bs.getDefaultType(), ObjectNode.class);
+
+                final ValueNode<String> typeNode = (ValueNode<String>) evtNode.get("type");
+                final String evtType = typeNode.getValue().toLowerCase();
+
+                final MethodInfo evtHandler = service.eventHandlers.get(evtType);
+                if (evtHandler == null) {
+                    throw new IllegalArgumentException("Event handler for event '" + evtType + "' not found");
+                }
+
+                final ArrayNode argsNode = (ArrayNode) evtNode.get("args");
+                final Parameter[] parmTypes = evtHandler.getParameters().values().toArray(new Parameter[0]);
+
+                int argI = 0;
+
+                Object[] args = new Object[parmTypes.length];
+                for (int i = 0; i < args.length; i++) {
+                    Parameter p = parmTypes[i];
+                    if (p.getType().inherits(Client.class)) {
+                        args[i] = this;
+                        continue;
+                    }
+                    SharkNode arg = argsNode.get(argI);
+                    if (arg != null) {
+                        args[i] = bs.read(arg, p.getType());
+                    }
+                    argI++;
+                }
+
+                evtHandler.invoke(this, args);
+            } catch (Exception ex) {
+                onWebSocketError(ex);
+            }
         }
     }
 

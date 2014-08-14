@@ -9,6 +9,8 @@ import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.rest.RESTServiceHandler;
+import org.eclipse.jetty.websocket.api.Session;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -103,7 +105,6 @@ public class WebiServer {
          * All arguments are considered optional GET parameters if nothing else has been specified
          * Handles GET requests to /hello/parms/?test=world&other=stuff
          * @param text
-         * @param other
          * @return 
          */
         public void broadcast(@Parm(required=true) String text) {
@@ -147,15 +148,16 @@ public class WebiServer {
             }
         }
 
+
         @Override
-        public void onOpen(Connection connection) {
-            super.onOpen(connection);
+        public void onWebSocketConnect(Session session) {
+            super.onWebSocketConnect(session);
             broadcast("entered", this);
             send("ready");
         }
 
         @Override
-        public void onClose(int closeCode, String message) {
+        public void onWebSocketClose(int closeCode, String message) {
             broadcast("left", this);
         }
     }

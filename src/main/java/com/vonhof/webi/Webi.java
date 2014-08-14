@@ -279,8 +279,11 @@ public final class Webi {
             try {
 
                 for(Filter filter:filters.getAll(path)) {
-                    if (!filter.apply(wr))
+                    if (!filter.apply(wr)) {
+                        baseRequest.setHandled(true);
                         return;
+                    }
+
                 }
 
                 if (handler != null) {

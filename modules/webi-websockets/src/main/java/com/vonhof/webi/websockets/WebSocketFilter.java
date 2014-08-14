@@ -6,19 +6,22 @@ import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.websockets.SocketService.Client;
+import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
+import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
+import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
-import org.eclipse.jetty.websocket.WebSocket;
-import org.eclipse.jetty.websocket.WebSocketFactory;
 
 /**
  *
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterInject {
+public class WebSocketFilter extends WebSocketServerFactory implements Filter {
     @Inject
     private Webi webi;
     
@@ -26,19 +29,17 @@ public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterI
      * Request handler map
      */
     private final PathPatternMap<SocketService> webSockets = new PathPatternMap<SocketService>();
-    
-    private final WebSocketFactory webSocketFactory = new WebSocketFactory(this, 3*1024);
 
     public WebSocketFilter() {
-        webSocketFactory.setMaxIdleTime(-1);
-        webSocketFactory.setMaxTextMessageSize(Integer.MAX_VALUE);
+        super();
+        getPolicy().setIdleTimeout(Long.MAX_VALUE);
+        getPolicy().setMaxTextMessageSize(Integer.MAX_VALUE);
+
     }
-    
-    
-      /**
+
+    /**
      * Add websocket handler at path
      * @param path
-     * @param handler 
      */
     public <T extends SocketService> T  add(String path,T service) {
         webSockets.put(path, service);
@@ -55,9 +56,15 @@ public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterI
     }
 
     public boolean apply(WebiContext ctxt) {
+
         try {
-            if (webSocketFactory.acceptWebSocket(ctxt.getRequest(),ctxt.getResponse())) {
-                return false;
+
+            if (isUpgradeRequest(ctxt.getRequest(), ctxt.getResponse()) &&
+                    webSockets.get(ctxt.getPath()) != null) {
+                if (acceptWebSocket(this, ctxt.getRequest(),ctxt.getResponse())) {
+                    return false;
+                }
+
             }
         } catch (IOException ex) {
             Logger.getLogger(WebSocketFilter.class.getName()).log(Level.SEVERE, null, ex);
@@ -66,8 +73,8 @@ public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterI
     }
 
     @Override
-    public WebSocket doWebSocketConnect(HttpServletRequest request, String protocol) {
-        SocketService service = webSockets.get(request.getPathInfo());
+    public Client createWebSocket(ServletUpgradeRequest req, ServletUpgradeResponse resp) {
+        SocketService service = webSockets.get(req.getRequestURI().getPath());
         if (service != null) {
             try {
                 Client client = service.newClient();
@@ -79,14 +86,4 @@ public class WebSocketFilter implements Filter, WebSocketFactory.Acceptor,AfterI
         }
         return null;
     }
-
-    @Override
-    public boolean checkOrigin(HttpServletRequest request, String origin) {
-        return true;
-    }
-
-    public void afterInject() {
-        
-    }
-
 }
