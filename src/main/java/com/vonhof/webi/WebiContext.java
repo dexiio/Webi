@@ -15,6 +15,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.eclipse.jetty.server.Request;
 
 /**
  * Webi context wraps request, response and paths.
@@ -25,6 +26,7 @@ public final class WebiContext {
     private final String path;
     private final String base;
     private final HttpServletRequest request;
+    private final Request jettyRequest;
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
     private final ParmMap parmMap;
@@ -33,11 +35,13 @@ public final class WebiContext {
     private final List<DiskFileItem> uploads;
     private String responseType = "text/plain";
     private String outputType = null;
+
     
     
-    protected WebiContext(String base,String path, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
+    protected WebiContext(String base,String path, Request jettyRequest, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
         this.base = base;
         this.path = path;
+        this.jettyRequest = jettyRequest;
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
@@ -69,6 +73,18 @@ public final class WebiContext {
 
     public WebiSession getSession() {
         return session;
+    }
+
+    public void setRequestHandled(boolean handled) {
+        jettyRequest.setHandled(handled);
+    }
+
+    public boolean isHandled() {
+        return jettyRequest.isHandled();
+    }
+
+    public Request getJettyRequest() {
+        return jettyRequest;
     }
 
     public HttpServletRequest getRequest() {

@@ -270,6 +270,7 @@ public final class Webi {
             }
             
             final WebiContext wr = new WebiContext(basePath,path,
+                                                    baseRequest,
                                                     request,response,
                                                    sessionResolver);
 
@@ -280,7 +281,7 @@ public final class Webi {
 
                 for(Filter filter:filters.getAll(path)) {
                     if (!filter.apply(wr)) {
-                        baseRequest.setHandled(true);
+                        wr.setRequestHandled(true);
                         return;
                     }
 

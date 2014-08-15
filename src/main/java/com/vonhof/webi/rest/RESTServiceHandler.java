@@ -106,7 +106,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
         } catch (Throwable ex) {
             output = exceptionHandler.handle(ctxt,ex);
         } finally {
-            if (ctxt.getResponse().isCommitted()) {
+            if (ctxt.getResponse().isCommitted() || ctxt.isHandled()) {
                 //Response is already send - exit
                 return;
             }
