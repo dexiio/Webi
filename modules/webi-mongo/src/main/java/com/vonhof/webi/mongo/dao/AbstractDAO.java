@@ -156,7 +156,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return fromDb(dbdoc, entryClass);
     }
 
-    protected <U> U fromDb(DBObject dbdoc, Class<U> clz) {
+    public <U> U fromDb(DBObject dbdoc, Class<U> clz) {
         if (dbdoc == null)
             return null;
         try {

@@ -83,11 +83,11 @@ public class BeanContext {
     }
 
     public void inject(boolean required) {
-        for (Entry<Class, Object> entry : beansByClass.entrySet()) {
+        for (Entry<Class, Object> entry : new HashSet<Entry<Class, Object>>(beansByClass.entrySet())) {
             inject(entry.getValue(), required);
         }
 
-        for (Entry<String, Object> entry : beansById.entrySet()) {
+        for (Entry<String, Object> entry : new HashSet<Entry<String, Object>>(beansById.entrySet())) {
             inject(entry.getValue(), required);
         }
     }
