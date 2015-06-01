@@ -221,12 +221,14 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return doc;
     }
 
-    public void createBulk(T ... docs) {
+    public boolean createBulk(T... docs) {
+        BulkWriteOperation bulk = coll().initializeUnorderedBulkOperation();
         BasicDBObject[] dbDocs = new BasicDBObject[docs.length];
         for(int i = 0 ; i < docs.length; i++) {
-            dbDocs[i] = toDb(docs[i]);
+            bulk.insert(toDb(docs[i]));
         }
-        coll().insert(dbDocs);
+
+        return bulk.execute(WriteConcern.ACKNOWLEDGED).getInsertedCount() == docs.length;
     }
 
     public T update(T doc) {
