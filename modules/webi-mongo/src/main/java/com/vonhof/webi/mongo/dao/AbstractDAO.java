@@ -218,9 +218,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     public T create(T doc) {
         BasicDBObject dbDoc = toDb(doc);
         WriteResult out = coll().insert(dbDoc);
-        if (out.getError() == null || out.getError().isEmpty())
-            return doc;
-        return null;
+        return doc;
     }
 
     public void createBulk(T ... docs) {
@@ -242,7 +240,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         BasicDBObject doc = new BasicDBObject();
         doc.put("_id", id);
         WriteResult out = coll().remove(doc);
-        return (out.getError() == null || out.getError().isEmpty());
+        return true;
     }
 
 }
