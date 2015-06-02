@@ -9,6 +9,7 @@ import com.vonhof.webi.mongo.dto.BasicDTO;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -148,7 +149,8 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         while (c.hasNext()) {
             out.getRows().add(fromDb(c.next()));
         }
-        out.setTotalRows(c.count());
+        long count = count(c.getQuery());
+        out.setTotalRows(count);
         return out;
     }
 
@@ -223,12 +225,27 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
 
     public boolean createBulk(T... docs) {
         BulkWriteOperation bulk = coll().initializeUnorderedBulkOperation();
-        BasicDBObject[] dbDocs = new BasicDBObject[docs.length];
         for(int i = 0 ; i < docs.length; i++) {
             bulk.insert(toDb(docs[i]));
         }
-
         return bulk.execute(WriteConcern.ACKNOWLEDGED).getInsertedCount() == docs.length;
+    }
+
+    public long count(DBObject q) {
+        AggregationOutput aggregate = coll().aggregate(Arrays.asList(
+                new BasicDBObject("$match", q),
+                new BasicDBObject("$group",
+                        new BasicDBObject("_id", null)
+                            .append("count", new BasicDBObject("$sum", 1)))
+        ));
+
+        Iterator<DBObject> iterator = aggregate.results().iterator();
+        if (iterator.hasNext()) {
+            Object count = iterator.next().get("count");
+            return Long.valueOf(String.valueOf(count));
+        }
+
+        return 0;
     }
 
     public T update(T doc) {
