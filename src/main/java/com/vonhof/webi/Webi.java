@@ -246,8 +246,6 @@ public final class Webi {
      */
     private class Handler extends AbstractHandler {
 
-        private final ThreadLocal<WebiContext> context = new ThreadLocal<WebiContext>();
-        
         @Override
         public void handle(String path,
                 Request baseRequest,
@@ -268,16 +266,18 @@ public final class Webi {
             if (handler != null) {
                 path = requestHandlers.trimContext(path);
             }
-            
-            final WebiContext wr = new WebiContext(basePath,path,
-                                                    baseRequest,
-                                                    request,response,
-                                                   sessionResolver);
 
-            context.set(wr);
-            beanContext.addThreadLocal(wr.getSession());
-
+            WebiContext wr = null;
             try {
+                beanContext.clearThreadLocal(WebiContext.class);
+
+                wr = new WebiContext(basePath,path,
+                                                        baseRequest,
+                                                        request,response,
+                                                       sessionResolver);
+
+                beanContext.addThreadLocal(wr);
+                beanContext.addThreadLocal(wr.getSession());
 
                 for(Filter filter:filters.getAll(path)) {
                     if (!filter.apply(wr)) {
@@ -292,9 +292,8 @@ public final class Webi {
                 } else {
                     response.sendError(404,"Not found");
                 }
-            } finally {
-                //Reset webi context for this thread , just in case
-                beanContext.clearThreadLocal(wr.getSession());
+            } catch (HttpException ex) {
+                response.sendError(ex.getCode(), ex.getMessage());
             }
         }
     }

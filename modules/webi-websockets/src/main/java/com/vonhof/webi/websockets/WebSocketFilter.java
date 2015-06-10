@@ -61,6 +61,7 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
 
             if (isUpgradeRequest(ctxt.getRequest(), ctxt.getResponse()) &&
                     webSockets.get(ctxt.getPath()) != null) {
+
                 if (acceptWebSocket(this, ctxt.getRequest(),ctxt.getResponse())) {
                     return false;
                 }

@@ -21,7 +21,7 @@ import org.eclipse.jetty.server.Request;
  * Webi context wraps request, response and paths.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public final class WebiContext {
+public class WebiContext {
     private static final ServletFileUpload fileUpload = new ServletFileUpload(new DiskFileItemFactory());
     private final String path;
     private final String base;
@@ -36,8 +36,19 @@ public final class WebiContext {
     private String responseType = "text/plain";
     private String outputType = null;
 
-    
-    
+
+    public WebiContext() {
+        path = null;
+        base = null;
+        request = null;
+        jettyRequest = null;
+        response = null;
+        httpMethod = null;
+        parmMap = null;
+        session = null;
+        uploads = null;
+    }
+
     protected WebiContext(String base,String path, Request jettyRequest, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
         this.base = base;
         this.path = path;
