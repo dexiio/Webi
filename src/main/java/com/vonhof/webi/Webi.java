@@ -78,11 +78,10 @@ public final class Webi {
      */
     public Webi(int port) {
         server = new Server();
-
-        final ServerConnector connector = new ServerConnector(server);
+        int numProcessors = Runtime.getRuntime().availableProcessors();
+        final ServerConnector connector = new ServerConnector(server, numProcessors, numProcessors * 2);
         connector.setPort(port);
         connector.setReuseAddress(true);
-        //connector.setAcceptors((Runtime.getRuntime().availableProcessors()*2)-2);
         server.setConnectors(new Connector[]{connector});
         
         init();

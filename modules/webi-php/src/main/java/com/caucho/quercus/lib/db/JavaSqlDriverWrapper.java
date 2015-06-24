@@ -33,7 +33,9 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /*
  * javax.sql.DataSource adapter for java.sql.Driver
@@ -81,7 +83,12 @@ public class JavaSqlDriverWrapper implements javax.sql.DataSource
   {
     throw new UnsupportedOperationException();
   }
-  
+
+  @Override
+  public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+    throw new SQLFeatureNotSupportedException();
+  }
+
   public PrintWriter getLogWriter()
   {
     throw new UnsupportedOperationException();
