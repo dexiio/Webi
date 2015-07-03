@@ -39,6 +39,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     private BabelSharkInstance bs;
 
     private final UrlMapper urlMapper;
+    private RESTListener listener;
     private ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
     private List<String> okOrigins = new ArrayList<String>();
 
@@ -78,6 +79,13 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
         okOrigins.add(host.toLowerCase());
     }
 
+    public RESTListener getListener() {
+        return listener;
+    }
+
+    public void setListener(RESTListener listener) {
+        this.listener = listener;
+    }
 
     @Override
     public void handle(WebiContext ctxt) throws IOException, ServletException {
@@ -136,6 +144,10 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
         String path = req.getPath();
         if (!path.isEmpty())
             path = path.substring(1);
+        long startTime = System.currentTimeMillis();
+        boolean success = false;
+        ClassInfo targetClass = null;
+        MethodInfo targetMethod = null;
         try {
             
             //Get controller instance
@@ -143,10 +155,11 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
             if (obj == null) {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
+
             final ClassInfo<?> info = ClassInfo.from(obj.getClass());
-            
-            
-            //Get handlers
+            targetClass = info;
+
+                    //Get handlers
             List<MethodInfo> handlers = info.getMethodsByAnnotation(Handler.class);
             
             //Invoke before request handlers
@@ -163,6 +176,8 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
                 throw new HttpException(HttpException.NOT_FOUND, "Not found");
             }
 
+            targetMethod = method;
+
             //Invoke controller method
             Object output =  invoke(obj, method, req);
             
@@ -173,7 +188,8 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
                     invoke(obj, handler, req);
                 }
             }
-            
+
+            success = true;
             return output;
             
         } catch (InvocationTargetException ex) {
@@ -184,8 +200,24 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
             throw ex;
         } catch (Exception ex) {
             throw new HttpException(HttpException.INTERNAL_ERROR, ex);
+        } finally {
+            emitExecutionResult(
+                    System.currentTimeMillis() - startTime,
+                    targetClass,
+                    targetMethod,
+                    success
+            );
         }
     }
+
+    private void emitExecutionResult(long executionTime, ClassInfo targetClass, MethodInfo targetMethod, boolean success) {
+        if (listener == null || targetClass == null || targetMethod == null) {
+            return;
+        }
+
+        listener.invokeResult(executionTime, targetClass, targetMethod, success);
+    }
+
     /**
      * Set response type from webi context
      * @param ctxt 

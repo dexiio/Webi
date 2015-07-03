@@ -32,6 +32,7 @@ public class BeanContext {
 
     private Set<Object> injected = new HashSet<Object>();
     private List<AfterInject> afterInjectionCalled = new LinkedList<AfterInject>();
+    private List<BeanInjectInterceptor> interceptors = new LinkedList<>();
 
     public BeanContext() {
         //Add myself
@@ -97,7 +98,12 @@ public class BeanContext {
     }
 
     public <T> T inject(T obj, boolean required) {
-        ClassInfo<?> clz = ClassInfo.from(obj.getClass());
+        Class<?> realClass = obj.getClass();
+        if (Enhancer.isEnhanced(realClass)) {
+            realClass = realClass.getSuperclass();
+        }
+
+        ClassInfo<?> clz = ClassInfo.from(realClass);
         Map<String, FieldInfo> fields = clz.getFields();
         boolean injectedAll = true;
         for (FieldInfo f : fields.values()) {
@@ -115,7 +121,7 @@ public class BeanContext {
                     if (bean == null)
                         bean = get(f.getType().getType());
                     if (bean != null) {
-                        f.set(obj, bean);
+                        f.set(obj, intercept(bean));
                     } else {
                         injectedAll = false;
 
@@ -123,7 +129,7 @@ public class BeanContext {
                             throw new RuntimeException(
                                     String.format("No com.vonhof.webi.bean registered for class: %s in %s",
                                             f.getType().getName(),
-                                            obj.getClass().getName()));
+                                            realClass.getName()));
                         }
                     }
                 }
@@ -148,6 +154,18 @@ public class BeanContext {
                 !afterInjectionCalled.contains(obj)) {
             afterInjectionCalled.add(((AfterInject) obj));
             ((AfterInject) obj).afterInject();
+        }
+
+        return obj;
+    }
+
+    public void addInjectInterceptor(BeanInjectInterceptor interceptor) {
+        this.interceptors.add(interceptor);
+    }
+
+    private <T> T intercept(T obj) {
+        for(BeanInjectInterceptor interceptor : interceptors) {
+            obj = interceptor.intercept(obj);
         }
 
         return obj;
