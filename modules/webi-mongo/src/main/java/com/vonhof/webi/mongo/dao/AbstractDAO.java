@@ -5,6 +5,7 @@ import com.vonhof.babelshark.BabelSharkInstance;
 import com.vonhof.babelshark.exception.MappingException;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.db.dto.ResultSetDTO;
+import com.vonhof.webi.mongo.DBIterator;
 import com.vonhof.webi.mongo.dto.BasicDTO;
 
 import javax.inject.Inject;
@@ -120,21 +121,11 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         }
     }
 
-    protected Iterator<T> toIterator(final DBCursor c) {
-        return new Iterator<T>() {
-            @Override
-            public boolean hasNext() {
-                return c.hasNext();
-            }
-
+    protected DBIterator<T> toIterator(final DBCursor c) {
+        return new DBIterator<T>(c) {
             @Override
             public T next() {
                 return fromDb(c.next());
-            }
-
-            @Override
-            public void remove() {
-                c.remove();
             }
         };
     }
@@ -205,7 +196,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         return toResultSet(queryForList());
     }
 
-    public Iterator<T> iterateAll() {
+    public DBIterator<T> iterateAll() {
         return toIterator(queryForList());
     }
 

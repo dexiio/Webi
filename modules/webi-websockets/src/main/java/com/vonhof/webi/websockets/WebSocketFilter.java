@@ -79,7 +79,7 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
         if (service != null) {
             try {
                 Client client = service.newClient();
-                webi.getBeanContext().inject(client);
+                webi.getBeanContext().inject(client, true);
                 return client;
             } catch (Exception ex) {
                 Logger.getLogger(Webi.class.getName()).log(Level.SEVERE, null, ex);
