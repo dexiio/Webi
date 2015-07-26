@@ -159,10 +159,11 @@ public class BeanContext {
                         && ReflectUtils.isBean(value.getClass())
                         && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
                     //Recurse
-                    Object realBean = getRealBeanForField(f);
-                    if (!injected.contains(value) &&
-                            !injected.contains(realBean)) {
-                        inject(realBean, required);
+                    if (Enhancer.isEnhanced(value.getClass())) {
+                        value = getRealBeanForField(f);
+                    }
+                    if (!injected.contains(value)) {
+                        inject(value, required);
                     }
                 }
             } catch (Throwable ex) {
