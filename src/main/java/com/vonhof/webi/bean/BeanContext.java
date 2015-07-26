@@ -30,6 +30,9 @@ public class BeanContext {
 
     private Map<Class, ThreadLocalWrapper> wrappersByClass = new HashMap<Class, ThreadLocalWrapper>();
 
+    private Map<Class, Object> proxiesByClass = new HashMap<Class, Object>();
+    private Map<String, Object> proxiesById = new HashMap<String, Object>();
+
     private Set<Object> injected = new HashSet<Object>();
     private List<AfterInject> afterInjectionCalled = new LinkedList<AfterInject>();
     private List<BeanInjectInterceptor> interceptors = new LinkedList<>();
@@ -45,6 +48,7 @@ public class BeanContext {
 
     public <T> void add(Class<T> clz, T bean) {
         beansByClass.put(clz, bean);
+        proxiesByClass.put(clz, intercept(bean));
         if (bean instanceof AfterAdd) {
             ((AfterAdd) bean).afterAdd(this);
         }
@@ -57,6 +61,7 @@ public class BeanContext {
 
     public <T> void add(String id, T bean) {
         beansById.put(id, bean);
+        proxiesById.put(id, intercept(bean));
         if (bean instanceof AfterAdd) {
             ((AfterAdd) bean).afterAdd(this);
         }
@@ -64,7 +69,7 @@ public class BeanContext {
     }
 
     public <T> T get(Class<T> beanClz) {
-        Object obj = beansByClass.get(beanClz);
+        Object obj = proxiesByClass.get(beanClz);
         if (obj instanceof ThreadLocal) {
             obj = ((ThreadLocal) obj).get();
         }
@@ -72,7 +77,7 @@ public class BeanContext {
     }
 
     public <T> T get(String id) {
-        Object obj = beansById.get(id);
+        Object obj = proxiesById.get(id);
         if (obj instanceof ThreadLocal) {
             obj = ((ThreadLocal) obj).get();
         }
@@ -121,7 +126,7 @@ public class BeanContext {
                     if (bean == null)
                         bean = get(f.getType().getType());
                     if (bean != null) {
-                        f.set(obj, intercept(bean));
+                        f.set(obj, bean);
                     } else {
                         injectedAll = false;
 
@@ -212,7 +217,6 @@ public class BeanContext {
         public final void setBean(T bean) {
             threadLocal.set(bean);
         }
-
 
         @Override
         public Object intercept(Object proxy, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
