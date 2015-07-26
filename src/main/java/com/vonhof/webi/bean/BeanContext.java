@@ -84,6 +84,22 @@ public class BeanContext {
         return (T) obj;
     }
 
+    protected <T> T getOriginal(Class<T> beanClz) {
+        Object obj = beansByClass.get(beanClz);
+        if (obj instanceof ThreadLocal) {
+            obj = ((ThreadLocal) obj).get();
+        }
+        return (T) obj;
+    }
+
+    protected <T> T getOriginal(String id) {
+        Object obj = beansById.get(id);
+        if (obj instanceof ThreadLocal) {
+            obj = ((ThreadLocal) obj).get();
+        }
+        return (T) obj;
+    }
+
     public void inject() {
         inject(false);
     }
@@ -102,11 +118,17 @@ public class BeanContext {
         return (T) inject(obj, false);
     }
 
-    public <T> T inject(T obj, boolean required) {
-        Class<?> realClass = obj.getClass();
-        if (Enhancer.isEnhanced(realClass)) {
-            realClass = realClass.getSuperclass();
+
+    private Class realClass(Class clz) {
+        while (Enhancer.isEnhanced(clz)) {
+            clz = clz.getSuperclass();
         }
+
+        return clz;
+    }
+
+    public <T> T inject(T obj, boolean required) {
+        Class<?> realClass = realClass(obj.getClass());
 
         ClassInfo<?> clz = ClassInfo.from(realClass);
         Map<String, FieldInfo> fields = clz.getFields();
@@ -119,17 +141,11 @@ public class BeanContext {
                 Object value = f.get(obj);
                 if (annotation != null
                         && value == null) {
-                    Object bean = get(f.getName());
-                    if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
-                        bean = null;
-                    }
-                    if (bean == null)
-                        bean = get(f.getType().getType());
+                    Object bean = getBeanForField(f);
                     if (bean != null) {
                         f.set(obj, bean);
                     } else {
                         injectedAll = false;
-
                         if (required) {
                             throw new RuntimeException(
                                     String.format("No com.vonhof.webi.bean registered for class: %s in %s",
@@ -143,8 +159,10 @@ public class BeanContext {
                         && ReflectUtils.isBean(value.getClass())
                         && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
                     //Recurse
-                    if (!injected.contains(value)) {
-                        inject(value, required);
+                    Object realBean = getRealBeanForField(f);
+                    if (!injected.contains(value) &&
+                            !injected.contains(realBean)) {
+                        inject(realBean, required);
                     }
                 }
             } catch (Throwable ex) {
@@ -162,6 +180,26 @@ public class BeanContext {
         }
 
         return obj;
+    }
+
+    private Object getBeanForField(FieldInfo f) {
+        Object bean = get(f.getName());
+        if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
+            bean = null;
+        }
+        if (bean == null)
+            bean = get(f.getType().getType());
+        return bean;
+    }
+
+    private Object getRealBeanForField(FieldInfo f) {
+        Object bean = getOriginal(f.getName());
+        if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
+            bean = null;
+        }
+        if (bean == null)
+            bean = getOriginal(f.getType().getType());
+        return bean;
     }
 
     public void addInjectInterceptor(BeanInjectInterceptor interceptor) {
