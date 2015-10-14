@@ -3,15 +3,11 @@ package com.vonhof.webi.bean;
 import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.FieldInfo;
-import com.vonhof.webi.session.WebiSession;
-import net.sf.cglib.proxy.Callback;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.util.*;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -33,6 +29,7 @@ public class BeanContext {
     private Map<Class, Object> proxiesByClass = new HashMap<Class, Object>();
     private Map<String, Object> proxiesById = new HashMap<String, Object>();
 
+    private Set<Object> injecting = new HashSet<Object>();
     private Set<Object> injected = new HashSet<Object>();
     private List<AfterInject> afterInjectionCalled = new LinkedList<AfterInject>();
     private List<BeanInjectInterceptor> interceptors = new LinkedList<>();
@@ -128,6 +125,10 @@ public class BeanContext {
     }
 
     public <T> T inject(T obj, boolean required) {
+        if (injected.contains(obj)) {
+            return obj;
+        }
+
         Class<?> realClass = realClass(obj.getClass());
 
         ClassInfo<?> clz = ClassInfo.from(realClass);
@@ -136,7 +137,7 @@ public class BeanContext {
         for (FieldInfo f : fields.values()) {
             Inject annotation = f.getAnnotation(Inject.class);
             f.forceAccessible();
-            injected.add(obj);
+            injecting.add(obj);
             try {
                 Object value = f.get(obj);
                 if (annotation != null
@@ -162,15 +163,19 @@ public class BeanContext {
                     if (Enhancer.isEnhanced(value.getClass())) {
                         value = getRealBeanForField(f);
                     }
-                    if (!injected.contains(value)) {
+                    if (!injecting.contains(value)) {
                         inject(value, required);
                     }
                 }
             } catch (Throwable ex) {
                 LOG.log(Level.SEVERE, null, ex);
             } finally {
-                injected.remove(obj);
+                injecting.remove(obj);
             }
+        }
+
+        if (injectedAll) {
+            injected.add(obj);
         }
         //Only call if all fields were injected (it may be too soon)
         if (injectedAll &&
