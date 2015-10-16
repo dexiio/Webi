@@ -110,6 +110,9 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     }
 
     protected List<T> toList(final DBCursor c) {
+        c.addOption(Bytes.QUERYOPTION_NOTIMEOUT)
+                .addOption(Bytes.QUERYOPTION_SLAVEOK);
+
         try {
             List<T> out = new ArrayList<T>();
             while (c.hasNext()) {
@@ -122,6 +125,10 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
     }
 
     protected DBIterator<T> toIterator(final DBCursor c) {
+
+        c.addOption(Bytes.QUERYOPTION_NOTIMEOUT)
+            .addOption(Bytes.QUERYOPTION_SLAVEOK);
+
         return new DBIterator<T>(c) {
             @Override
             public T next() {
@@ -136,6 +143,9 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
 
 
     protected ResultSetDTO<T> toResultSet(final DBCursor c) {
+        c.addOption(Bytes.QUERYOPTION_NOTIMEOUT)
+                .addOption(Bytes.QUERYOPTION_SLAVEOK);
+
         ResultSetDTO<T> out = new ResultSetDTO<T>();
         while (c.hasNext()) {
             out.getRows().add(fromDb(c.next()));
