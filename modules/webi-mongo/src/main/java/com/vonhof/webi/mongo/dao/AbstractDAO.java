@@ -50,14 +50,15 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
 
     protected void addShardKey(String... shardKeys) {
 
-        ensureIndex(shardKeys);
-
         DB adminDb = mongo.getDB("admin");
 
         final BasicDBObject shardKeyObject = new BasicDBObject();
         for (String key : shardKeys) {
             shardKeyObject.put(key, 1);
         }
+
+        coll().createIndex(shardKeyObject);
+
         final BasicDBObject shardCollectionCmd = new BasicDBObject("shardcollection", String.format("%s.%s", db.getName(), collectionName));
         shardCollectionCmd.put("key", shardKeyObject);
         adminDb.command(shardCollectionCmd);
@@ -77,7 +78,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
             keys.put(field, 1);
         }
 
-        coll().createIndex(keys);
+        coll().createIndex(keys, new BasicDBObject("background", true));
     }
 
     protected void ensureSortedIndex(String... fields) {
@@ -91,7 +92,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
                 keys.put(field, 1);
             }
             keys.putAll(sortKey);
-            coll().createIndex(keys);
+            coll().createIndex(keys, new BasicDBObject("background", true));
         }
     }
 
