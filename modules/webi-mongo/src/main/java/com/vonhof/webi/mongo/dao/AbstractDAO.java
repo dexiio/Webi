@@ -73,12 +73,17 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
             return;
         }
 
-        BasicDBObject keys = new BasicDBObject();
+        final BasicDBObject keys = new BasicDBObject();
         for (String field : fields) {
             keys.put(field, 1);
         }
 
-        coll().createIndex(keys, new BasicDBObject("background", true));
+        new Thread("Index Creation for " + collectionName) {
+            @Override
+            public void run() {
+                coll().createIndex(keys, new BasicDBObject("background", true));
+            }
+        }.start();
     }
 
     protected void ensureSortedIndex(String... fields) {
