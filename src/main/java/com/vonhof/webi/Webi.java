@@ -123,7 +123,7 @@ public final class Webi {
      * @throws Exception 
      */
     public void start() throws Exception {
-        beanContext.inject(true);
+        beanContext.injectAll();
 
         GzipHandler gzipHandler = new GzipHandler();
         gzipHandler.setHandler(new Handler());

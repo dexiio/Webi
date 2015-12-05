@@ -49,7 +49,8 @@ public class BeanContext {
         if (bean instanceof AfterAdd) {
             ((AfterAdd) bean).afterAdd(this);
         }
-        inject(bean);
+
+        inject(bean, false);
     }
 
     public <T> void add(T bean) {
@@ -97,22 +98,14 @@ public class BeanContext {
         return (T) obj;
     }
 
-    public void inject() {
-        inject(false);
-    }
-
-    public void inject(boolean required) {
-        for (Entry<Class, Object> entry : new HashSet<Entry<Class, Object>>(beansByClass.entrySet())) {
-            inject(entry.getValue(), required);
+    public void injectAll() {
+        for (Entry<Class, Object> entry : new HashSet<>(beansByClass.entrySet())) {
+            inject(entry.getValue(), true);
         }
 
-        for (Entry<String, Object> entry : new HashSet<Entry<String, Object>>(beansById.entrySet())) {
-            inject(entry.getValue(), required);
+        for (Entry<String, Object> entry : new HashSet<>(beansById.entrySet())) {
+            inject(entry.getValue(), true);
         }
-    }
-
-    public <T> T inject(T obj) {
-        return (T) inject(obj, false);
     }
 
 
@@ -124,7 +117,7 @@ public class BeanContext {
         return clz;
     }
 
-    public <T> T inject(T obj, boolean required) {
+    private <T> T inject(T obj, boolean required) {
         if (injected.contains(obj)) {
             return obj;
         }
@@ -149,7 +142,7 @@ public class BeanContext {
                         injectedAll = false;
                         if (required) {
                             throw new RuntimeException(
-                                    String.format("No com.vonhof.webi.bean registered for class: %s in %s",
+                                    String.format("No bean registered for class: %s in %s",
                                             f.getType().getName(),
                                             realClass.getName()));
                         }
@@ -186,6 +179,12 @@ public class BeanContext {
         }
 
         return obj;
+    }
+
+    public <T> T injectOnly(T obj) {
+        T out = inject(obj, true);
+        injected.remove(out);
+        return out;
     }
 
     private Object getBeanForField(FieldInfo f) {

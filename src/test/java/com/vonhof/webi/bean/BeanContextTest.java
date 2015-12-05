@@ -68,7 +68,7 @@ public class BeanContextTest {
         SimpleBean mainBean = new SimpleBean("main");
         bc.addThreadLocal(mainBean);
 
-        bc.inject(beanUser,true);
+        bc.injectOnly(beanUser);
 
         assertNotNull(beanUser.getSimpleBean());
 
