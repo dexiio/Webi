@@ -25,7 +25,7 @@ public class WebiServer {
         BabelShark.register(new JsonLanguage());
         
         //Tell webi to bind to port 8081 - it wont start listening until you call start();
-        final Webi webi = new Webi(8081);
+        final Webi webi = new Webi(8081, 100, 0, 50);
         //Initialize websocket service
         WebSocketFilter webSocketFilter = new WebSocketFilter();
         webSocketFilter.add("/socket/",new SocketService<SocketTest>(SocketTest.class));
