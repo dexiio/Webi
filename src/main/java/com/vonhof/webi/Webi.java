@@ -280,16 +280,54 @@ public final class Webi {
     private class Handler extends AbstractHandler {
 
         @Override
-        public void handle(final String path,
+        public void handle(String path,
                            final Request baseRequest,
                            final HttpServletRequest request,
                            final HttpServletResponse response)
                 throws IOException, ServletException {
+            PathPattern basePattern = requestHandlers.getPattern(path);
+            String basePath = basePattern != null ? basePattern.toString() : "/";
 
+            final SessionHandler sessionResolver = sessionHandlers.get(path);
+
+            final RequestHandler handler = requestHandlers.get(path);
+
+            //Hack for path - make a proper normalization process for paths
+            if (handler != null) {
+                path = requestHandlers.trimContext(path);
+            }
+
+            WebiContext wr = null;
+            try {
+
+                beanContext.clearThreadLocal(WebiContext.class);
+
+                wr = new WebiContext(basePath, path,
+                        baseRequest,
+                        request, response,
+                        sessionResolver);
+
+
+                beanContext.addThreadLocal(wr);
+                beanContext.addThreadLocal(wr.getSession());
+
+                for (Filter filter : filters.getAll(path)) {
+                    if (!filter.apply(wr)) {
+                        wr.setRequestHandled(true);
+                        return;
+                    }
+                }
+            } catch (HttpException ex) {
+                response.sendError(ex.getCode(), ex.getMessage());
+                return;
+            }
+
+
+            final WebiContext finalWr = wr;
             throttleRequest(request, response, new HandlerCallback() {
                 @Override
                 public void handle() throws IOException, ServletException {
-                    doHandle(path, baseRequest, request, response);
+                    doHandle(finalWr, handler);
                 }
             });
         }
@@ -366,46 +404,21 @@ public final class Webi {
             return accepted;
         }
 
-        private void doHandle(String path, Request baseRequest, HttpServletRequest request, HttpServletResponse response) throws IOException, ServletException {
-            PathPattern basePattern = requestHandlers.getPattern(path);
-            String basePath = basePattern != null ? basePattern.toString() : "/";
+        private void doHandle(WebiContext wr, RequestHandler handler) throws IOException, ServletException {
 
-            RequestHandler handler = requestHandlers.get(path);
-
-            final SessionHandler sessionResolver = sessionHandlers.get(path);
-
-            //Hack for path - make a proper normalization process for paths
-            if (handler != null) {
-                path = requestHandlers.trimContext(path);
-            }
-
-            WebiContext wr = null;
             try {
+
                 beanContext.clearThreadLocal(WebiContext.class);
-
-                wr = new WebiContext(basePath, path,
-                        baseRequest,
-                        request, response,
-                        sessionResolver);
-
                 beanContext.addThreadLocal(wr);
                 beanContext.addThreadLocal(wr.getSession());
-
-                for (Filter filter : filters.getAll(path)) {
-                    if (!filter.apply(wr)) {
-                        wr.setRequestHandled(true);
-                        return;
-                    }
-
-                }
 
                 if (handler != null) {
                     handler.handle(wr);
                 } else {
-                    response.sendError(404, "Not found");
+                    wr.getResponse().sendError(404, "Not found");
                 }
             } catch (HttpException ex) {
-                response.sendError(ex.getCode(), ex.getMessage());
+                wr.getResponse().sendError(ex.getCode(), ex.getMessage());
             }
         }
     }
