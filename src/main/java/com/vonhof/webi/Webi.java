@@ -126,8 +126,9 @@ public final class Webi {
         beanContext.add(server);
         beanContext.add(BabelShark.getDefaultInstance());
 
-        requestSemaphore = new Semaphore(maxRequests, true);
-
+        if (maxRequests > 0) {
+            requestSemaphore = new Semaphore(maxRequests, true);
+        }
 
     }
 
@@ -285,6 +286,11 @@ public final class Webi {
                            final HttpServletRequest request,
                            final HttpServletResponse response)
                 throws IOException, ServletException {
+
+            if (maxRequests < 1) {
+                doHandle(path, baseRequest, request, response);
+                return;
+            }
 
             throttleRequest(request, response, new HandlerCallback() {
                 @Override

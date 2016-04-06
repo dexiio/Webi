@@ -4,7 +4,7 @@
 
   <groupId>com.vonhof</groupId>
   <artifactId>webi-client</artifactId>
-  <version>1.4.0</version>
+  <version>1.4.2</version>
   <packaging>jar</packaging>
 
   <name>webi-client</name>
