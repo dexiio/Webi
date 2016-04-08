@@ -7,6 +7,8 @@ import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.db.dto.ResultSetDTO;
 import com.vonhof.webi.mongo.DBIterator;
 import com.vonhof.webi.mongo.dto.BasicDTO;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -14,13 +16,12 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class AbstractDAO<T extends BasicDTO> implements AfterInject {
+    private static final Logger log = LogManager.getLogger(AbstractDAO.class);
 
     protected @Inject Mongo mongo;
 
@@ -110,7 +111,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         try {
             return bs.convert(doc, BasicDBObject.class);
         } catch (MappingException ex) {
-            Logger.getLogger(AbstractDAO.class.getName()).log(Level.SEVERE, null, ex);
+            log.warn("Failed to serialize mongo document", ex);
         }
         return null;
     }
@@ -171,7 +172,7 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         try {
             return bs.convert(dbdoc, clz);
         } catch (MappingException ex) {
-            Logger.getLogger(AbstractDAO.class.getName()).log(Level.SEVERE, null, ex);
+            log.warn("Failed to deserialize mongo document", ex);
         }
         return null;
     }

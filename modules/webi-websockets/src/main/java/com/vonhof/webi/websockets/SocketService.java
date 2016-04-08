@@ -9,6 +9,8 @@ import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.io.EofException;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
@@ -22,10 +24,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class SocketService<T extends SocketService.Client>  {
+    private static final Logger log = LogManager.getLogger(SocketService.class);
 
     @Inject
     private BabelSharkInstance bs;
@@ -115,7 +116,7 @@ public class SocketService<T extends SocketService.Client>  {
                 //Ignore error - user disconnected quickly.
                 return false;
             }
-            Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
+            log.warn("Failed while attempting to send event to client socket", ex);
             return false;
         }
     }
@@ -129,7 +130,7 @@ public class SocketService<T extends SocketService.Client>  {
             client.session.getRemote().sendString(new String(data,"UTF-8"));
             return true;
         } catch (Exception ex) {
-            Logger.getLogger(SocketService.class.getName()).log(Level.SEVERE, null, ex);
+            log.warn("Failed while attempting to send message to client socket", ex);
             return false;
         }
     }
@@ -196,8 +197,7 @@ public class SocketService<T extends SocketService.Client>  {
             if (ex instanceof InvocationTargetException
                     && ex.getCause() instanceof HttpException)
                 return;
-            Logger.getLogger(SocketService.class.getName()).
-                    log(Level.SEVERE, null, ex);
+            log.warn("Web socket failed", ex);
         }
 
         @Override

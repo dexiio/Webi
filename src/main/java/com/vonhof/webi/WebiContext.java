@@ -7,14 +7,13 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.logging.log4j.LogManager;
 import org.eclipse.jetty.server.Request;
 
 /**
@@ -70,7 +69,7 @@ public class WebiContext {
             try {
                 tmp = fileUpload.parseRequest(request);
             } catch (FileUploadException ex) {
-                Logger.getLogger(WebiContext.class.getName()).log(Level.SEVERE, null, ex);
+                LogManager.getLogger(WebiContext.class).fatal("Failed to read file upload", ex);
             }
             uploads = tmp;
         } else {

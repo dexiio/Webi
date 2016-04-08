@@ -5,9 +5,8 @@ import com.vonhof.webi.WebiContext;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -50,7 +49,7 @@ public class BasicAuthFilter implements Filter {
             ctxt.setHeader("WWW-Authenticate", String.format("Basic realm=\"%s\"",realm));
             ctxt.sendError(401,"Authorization Required");
         } catch (IOException ex) {
-            Logger.getLogger(BasicAuthFilter.class.getName()).log(Level.SEVERE, null, ex);
+            LogManager.getLogger(BasicAuthFilter.class).fatal("Failed to send auth request", ex);
         }
         
         return false;

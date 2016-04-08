@@ -4,12 +4,12 @@ import com.asual.lesscss.LessEngine;
 import com.asual.lesscss.LessOptions;
 import com.google.common.io.Files;
 import com.vonhof.webi.WebiContext;
+import org.apache.logging.log4j.LogManager;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -56,7 +56,7 @@ public class LESSHandler extends PreprocessingRequestHandler {
                 
                 req.getOutputStream().write(compiled.getBytes("UTF-8"));
             } catch (Throwable ex) {
-                Logger.getLogger(LESSHandler.class.getName()).log(Level.SEVERE, null, ex);
+                LogManager.getLogger(LESSHandler.class).fatal("Failed while compiling LESS", ex);
                 req.getOutputStream().write(cssLess.getBytes("UTF-8"));
             }
         }

@@ -2,20 +2,21 @@ package com.vonhof.webi.rest;
 
 import com.vonhof.webi.HttpException;
 import com.vonhof.webi.WebiContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class DefaultExceptionHandler implements ExceptionHandler {
-    private static final Logger LOG = Logger.getLogger(DefaultExceptionHandler.class.getName());
+    private static final Logger log = LogManager.getLogger(DefaultExceptionHandler.class);
 
     @Override
     public Object handle(WebiContext ctxt,Throwable ex) {
-        LOG.log(Level.SEVERE, null, ex);
+        log.fatal("Caught unhandled exception", ex);
         if (ex instanceof HttpException) {
             ErrorMessage out = new ErrorMessage((HttpException)ex);
             ctxt.setStatus(out.getCode() > 0 ? out.getCode() : 500);
@@ -24,7 +25,7 @@ public class DefaultExceptionHandler implements ExceptionHandler {
         try {
             ctxt.sendError(ex);
         } catch (IOException ex1) {
-            LOG.log(Level.SEVERE, null, ex1);
+            log.fatal("Failed to send error message", ex1);
         }
         return null;
     }

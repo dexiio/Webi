@@ -6,12 +6,12 @@ import com.vonhof.babelshark.reflect.FieldInfo;
 import net.sf.cglib.proxy.Enhancer;
 import net.sf.cglib.proxy.MethodInterceptor;
 import net.sf.cglib.proxy.MethodProxy;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.inject.Inject;
 
 /**
@@ -20,7 +20,7 @@ import javax.inject.Inject;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class BeanContext {
-    private final static Logger LOG = Logger.getLogger(BeanContext.class.getName());
+    private final static Logger log = LogManager.getLogger(BeanContext.class.getName());
     private Map<Class, Object> beansByClass = new HashMap<Class, Object>();
     private Map<String, Object> beansById = new HashMap<String, Object>();
 
@@ -161,7 +161,7 @@ public class BeanContext {
                     }
                 }
             } catch (Throwable ex) {
-                LOG.log(Level.SEVERE, null, ex);
+                log.fatal("Failed while injecting beans", ex);
             } finally {
                 injecting.remove(obj);
             }

@@ -5,9 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.fileupload.FileItem;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -85,7 +84,7 @@ public class TextFile {
                     charset = encoding;
                 }
             } catch (UnsupportedEncodingException ex) {
-                Logger.getLogger(TextFile.class.getName()).log(Level.SEVERE, null, ex);
+                LogManager.getLogger(TextFile.class).warn("Failed while detecting encoding" , ex);
             }
         }
         

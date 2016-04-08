@@ -9,12 +9,13 @@ import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Request;
 import org.eclipse.jetty.server.Server;
@@ -33,7 +34,7 @@ public final class Webi {
     private final String ATTR_RESUMED = "QoSFilter@" + Integer.toHexString(hashCode()) + ".RESUMED";
 
 
-    private static final Logger LOG = Logger.getLogger(Webi.class.getName());
+    private static final Logger log = LogManager.getLogger(Webi.class);
 
     /**
      * Request handler map
@@ -172,7 +173,7 @@ public final class Webi {
             try {
                 handler.onShutdown(shutdownGracefully);
             } catch (Exception ex) {
-                LOG.log(Level.WARNING, "Webi got an exception while trying to shutdown jetty", ex);
+                log.warn("Webi got an exception while trying to shutdown jetty", ex);
             }
         }
     }
@@ -337,7 +338,7 @@ public final class Webi {
                         } else {
                             // Timeout! try 1 more time.
                             accepted = requestSemaphore.tryAcquire(waitMs, TimeUnit.MILLISECONDS);
-                            LOG.warning("Request timed out to: " + ((HttpServletRequest) request).getRequestURI());
+                            log.warn("Request timed out to: {}", ((HttpServletRequest) request).getRequestURI());
                         }
                     } else {
                         // Pass through resume of previously accepted request.

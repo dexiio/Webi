@@ -6,6 +6,8 @@ import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.websockets.SocketService.Client;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.websocket.server.WebSocketServerFactory;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeRequest;
 import org.eclipse.jetty.websocket.servlet.ServletUpgradeResponse;
@@ -14,14 +16,14 @@ import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class WebSocketFilter extends WebSocketServerFactory implements Filter {
+    private static final Logger log = LogManager.getLogger(WebSocketFilter.class);
+
     @Inject
     private Webi webi;
     
@@ -68,7 +70,7 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
 
             }
         } catch (IOException ex) {
-            Logger.getLogger(WebSocketFilter.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Failed while upgrading websocket request", ex);
         }
         return true;
     }
@@ -82,7 +84,7 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
                 webi.getBeanContext().injectOnly(client);
                 return client;
             } catch (Exception ex) {
-                Logger.getLogger(Webi.class.getName()).log(Level.SEVERE, null, ex);
+                log.error("Failed while creating websocket", ex);
             }
         }
         return null;

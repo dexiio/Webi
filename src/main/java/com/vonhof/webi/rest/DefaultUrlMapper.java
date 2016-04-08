@@ -7,11 +7,12 @@ import com.vonhof.webi.HttpMethod;
 import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.bean.BeanContext;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Default implementation of the url mapper
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
  */
 public class DefaultUrlMapper implements UrlMapper {
     
-    private final static Logger LOG = Logger.getLogger(BeanContext.class.getName());
+    private final static Logger log = LogManager.getLogger(BeanContext.class);
 
     private final Map<String, Object> controllers = new HashMap<String, Object>();
     private final Map<String,Map<String, EnumMap<HttpMethod,MethodInfo>>> actions = new HashMap<String, Map<String, EnumMap<HttpMethod, MethodInfo>>>();
@@ -52,9 +53,8 @@ public class DefaultUrlMapper implements UrlMapper {
             }
             
             ctrlActions.get(url).put(httpMethod,m);
-            LOG.log(Level.INFO,String.format("Mapped %s/%s (%s) to %s:%s",
-                                                            baseUrl,url,httpMethod,
-                                                            obj.getClass().getSimpleName(),m.getName()));
+            log.info("Mapped {}/{} ({}) to {}:{}",baseUrl,url,httpMethod,
+                    obj.getClass().getSimpleName(),m.getName());
         }
     }
 

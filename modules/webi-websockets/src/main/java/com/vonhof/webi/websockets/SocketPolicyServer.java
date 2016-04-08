@@ -3,9 +3,8 @@ package com.vonhof.webi.websockets;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.apache.commons.io.IOUtils;
+import org.apache.logging.log4j.LogManager;
 
 /**
  *
@@ -50,7 +49,7 @@ public class SocketPolicyServer extends ServerSocket {
                         client.getOutputStream().close();
                         
                     } catch (IOException ex) {
-                        Logger.getLogger(SocketPolicyServer.class.getName()).log(Level.SEVERE, null, ex);
+                        LogManager.getLogger(SocketPolicyServer.class).fatal("Failed to write socket policy", ex);
                     }
                 }
                 
