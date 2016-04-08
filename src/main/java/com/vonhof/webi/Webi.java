@@ -16,11 +16,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.jetty.server.Connector;
-import org.eclipse.jetty.server.Request;
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
+import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.server.handler.RequestLogHandler;
 import org.eclipse.jetty.servlets.gzip.GzipHandler;
 import org.eclipse.jetty.util.thread.QueuedThreadPool;
 
@@ -94,6 +92,8 @@ public final class Webi {
 
     private int maxRequests = 50;
 
+    private RequestLogHandler requestLogHandler = new RequestLogHandler();
+
     /**
      * Setup webi server on specified port
      *
@@ -109,9 +109,13 @@ public final class Webi {
         connector.setReuseAddress(true);
         server.setConnectors(new Connector[]{connector});
 
+
         init();
     }
 
+    public void setRequestLog(RequestLog requestLog) {
+        requestLogHandler.setRequestLog(requestLog);
+    }
     /**
      * Setup webi server using specified jetty server
      *
@@ -156,11 +160,14 @@ public final class Webi {
     public void start() throws Exception {
         beanContext.injectAll();
 
+
         GzipHandler gzipHandler = new GzipHandler();
         gzipHandler.setHandler(new Handler());
         gzipHandler.setMimeTypes("text/html,text/css,text/javascript,application/json,image/gif,image/jpeg,image/png");
 
-        server.setHandler(gzipHandler);
+        requestLogHandler.setHandler(gzipHandler);
+
+        server.setHandler(requestLogHandler);
         server.start();
         try {
             server.join();
