@@ -1,5 +1,9 @@
 package com.vonhof.webi;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jetty9.InstrumentedConnectionFactory;
+import com.codahale.metrics.jetty9.InstrumentedHandler;
+import com.codahale.metrics.jetty9.InstrumentedQueuedThreadPool;
 import com.vonhof.babelshark.BabelShark;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.SessionHandler;
@@ -92,21 +96,48 @@ public final class Webi {
 
     private int maxRequests = 50;
 
+    private MetricRegistry registry;
+
     private RequestLogHandler requestLogHandler = new RequestLogHandler();
+
+    public Webi(int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests) {
+        this(null, port, maxThreads, acceptQueueSize, maxConcurrentRequests);
+    }
 
     /**
      * Setup webi server on specified port
      *
      * @param port
      */
-    public Webi(int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests) {
+    public Webi(MetricRegistry registry, int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests) {
         this.maxRequests = maxConcurrentRequests;
-        server = new Server(new QueuedThreadPool(maxThreads));
+        this.registry = registry;
+
+        log.info("Configured with maxThread: {}, acceptQueueSize: {}, maxConcurrentRequests: {}, metrics: {}",
+                    maxThreads, acceptQueueSize, maxConcurrentRequests, registry != null);
+
+        if (registry != null) {
+            server = new Server(new InstrumentedQueuedThreadPool(registry, maxThreads));
+        } else {
+            server = new Server(new QueuedThreadPool(maxThreads));
+        }
+
         int numProcessors = Runtime.getRuntime().availableProcessors();
         final ServerConnector connector = new ServerConnector(server, numProcessors, numProcessors * 2);
         connector.setAcceptQueueSize(acceptQueueSize);
         connector.setPort(port);
         connector.setReuseAddress(true);
+
+        if (registry != null) {
+            Collection<ConnectionFactory> connectionFactories = new ArrayList<>();
+
+            for (ConnectionFactory factory : connector.getConnectionFactories()) {
+                connectionFactories.add(new InstrumentedConnectionFactory(factory, registry.timer(factory.getProtocol())));
+            }
+            connector.setConnectionFactories(connectionFactories);
+        }
+
+
         server.setConnectors(new Connector[]{connector});
 
 
@@ -115,6 +146,12 @@ public final class Webi {
 
     public void setRequestLog(RequestLog requestLog) {
         requestLogHandler.setRequestLog(requestLog);
+        if (requestLog instanceof NCSARequestLog) {
+            log.info("Configured request log: {}, filename: {}", requestLog.getClass(), ((NCSARequestLog)requestLog).getFilename());
+        } else {
+            log.info("Configured request log: {}", requestLog);
+        }
+
     }
     /**
      * Setup webi server using specified jetty server
@@ -160,14 +197,26 @@ public final class Webi {
     public void start() throws Exception {
         beanContext.injectAll();
 
-
         GzipHandler gzipHandler = new GzipHandler();
         gzipHandler.setHandler(new Handler());
         gzipHandler.setMimeTypes("text/html,text/css,text/javascript,application/json,image/gif,image/jpeg,image/png");
 
-        requestLogHandler.setHandler(gzipHandler);
+        org.eclipse.jetty.server.Handler handler = gzipHandler;
 
-        server.setHandler(requestLogHandler);
+        if (requestLogHandler.getRequestLog() != null) {
+            requestLogHandler.setHandler(gzipHandler);
+            handler = requestLogHandler;
+        }
+
+        if (registry != null) {
+            InstrumentedHandler instrumentedHandler = new InstrumentedHandler(registry, "webi");
+            instrumentedHandler.setHandler(requestLogHandler);
+
+            handler = instrumentedHandler;
+            log.info("Added instrumented handler for webi metrics");
+        }
+
+        server.setHandler(handler);
         server.start();
         try {
             server.join();
@@ -176,9 +225,9 @@ public final class Webi {
         }
 
         //Not getting here before its shut down
-        for (ShutdownHandler handler : shutdownHandlers) {
+        for (ShutdownHandler shutdownHandler : shutdownHandlers) {
             try {
-                handler.onShutdown(shutdownGracefully);
+                shutdownHandler.onShutdown(shutdownGracefully);
             } catch (Exception ex) {
                 log.warn("Webi got an exception while trying to shutdown jetty", ex);
             }

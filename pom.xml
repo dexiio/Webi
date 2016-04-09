@@ -5,7 +5,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi</artifactId>
-    <version>1.4.2</version>
+    <version>1.4.3</version>
     <packaging>jar</packaging>
 
     <name>webi</name>
@@ -13,6 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <metrics.version>3.1.2</metrics.version>
     </properties>
 
     <distributionManagement>
@@ -53,6 +54,16 @@
             <groupId>org.eclipse.jetty</groupId>
             <artifactId>jetty-servlets</artifactId>
             <version>9.2.2.v20140723</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-core</artifactId>
+            <version>${metrics.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.dropwizard.metrics</groupId>
+            <artifactId>metrics-jetty9</artifactId>
+            <version>${metrics.version}</version>
         </dependency>
         <dependency>
             <groupId>com.vonhof</groupId>

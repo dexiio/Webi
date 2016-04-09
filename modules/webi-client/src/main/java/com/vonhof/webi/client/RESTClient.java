@@ -110,7 +110,13 @@ public class RESTClient {
             
             if (!queryParams.isEmpty()) {
                 sb.append("?");
+                boolean first = false;
                 for(Entry<String,String> parm:queryParams.entrySet()) {
+                    if (first) {
+                        first = false;
+                    } else {
+                        sb.append("&");
+                    }
                     sb.append(parm.getKey())
                             .append("=")
                             .append(parm.getValue());
