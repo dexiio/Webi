@@ -210,7 +210,7 @@ public final class Webi {
 
         if (registry != null) {
             InstrumentedHandler instrumentedHandler = new InstrumentedHandler(registry, "webi");
-            instrumentedHandler.setHandler(requestLogHandler);
+            instrumentedHandler.setHandler(handler);
 
             handler = instrumentedHandler;
             log.info("Added instrumented handler for webi metrics");
