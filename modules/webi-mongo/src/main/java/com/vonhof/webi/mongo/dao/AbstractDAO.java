@@ -144,6 +144,8 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         };
     }
 
+
+
     protected DBObject getListFields() {
         return null;
     }
@@ -181,17 +183,24 @@ public class AbstractDAO<T extends BasicDTO> implements AfterInject {
         BasicDBObject doc = new BasicDBObject();
         doc.put("_id", id);
         DBObject out = null;
+
+        BasicDBObject fieldsObj = makeFieldsObject(fields);
+
+        out = coll().findOne(doc, fieldsObj);
+
+        return fromDb(out);
+    }
+
+    protected BasicDBObject makeFieldsObject(String... fields) {
         if (fields.length > 0) {
             BasicDBObject fieldsObj = new BasicDBObject();
             for (String field : fields) {
                 fieldsObj.put(field, true);
             }
-            out = coll().findOne(doc, fieldsObj);
-        } else {
-            out = coll().findOne(doc);
+            return fieldsObj;
         }
 
-        return fromDb(out);
+        return null;
     }
 
     public ResultSetDTO<T> getList(String... ids) {

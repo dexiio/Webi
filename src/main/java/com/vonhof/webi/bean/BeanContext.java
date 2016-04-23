@@ -39,6 +39,31 @@ public class BeanContext {
         add(this);
     }
 
+    public BeanContext(BeanContext other) {
+
+
+        proxiesByClass.putAll(other.proxiesByClass);
+        proxiesById.putAll(other.proxiesById);
+
+        beansByClass.putAll(other.beansByClass);
+        beansById.putAll(other.beansById);
+
+        add(this);
+
+        afterInjectionCalled.addAll(other.afterInjectionCalled);
+        interceptors.addAll(other.interceptors);
+
+        //Add thread locals as "normal" beans - this is a temp copy.
+        for(ThreadLocalWrapper wrapper : other.wrappersByClass.values()) {
+            if (wrapper.threadLocal.get() == null) {
+                continue;
+            }
+            add(wrapper.threadLocal.get());
+        }
+
+
+    }
+
     public Map<String, Object> getBeans() {
         return beansById;
     }
@@ -246,10 +271,21 @@ public class BeanContext {
         clearThreadLocal(bean.getClass());
     }
 
+    public <T> T getThreadLocal(Class<T> beanClass) {
+        ThreadLocalWrapper<T> wrapper = wrappersByClass.get(beanClass);
+        return wrapper.threadLocal.get();
+    }
+
     public <T> void clearThreadLocal(Class<T> beanClass) {
         ThreadLocalWrapper<T> wrapper = wrappersByClass.get(beanClass);
         if (wrapper != null) {
             wrapper.setBean(null);
+        }
+    }
+
+    public void clearThreadLocals() {
+        for(Entry<Class,ThreadLocalWrapper> entry : wrappersByClass.entrySet()) {
+            entry.getValue().setBean(null);
         }
     }
 

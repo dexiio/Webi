@@ -444,7 +444,7 @@ public final class Webi {
 
             WebiContext wr = null;
             try {
-                beanContext.clearThreadLocal(WebiContext.class);
+                beanContext.clearThreadLocals();
 
                 wr = new WebiContext(basePath, path,
                         baseRequest,

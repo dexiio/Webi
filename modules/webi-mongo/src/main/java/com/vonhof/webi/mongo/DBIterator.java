@@ -5,7 +5,7 @@ import com.mongodb.DBCursor;
 import java.util.Iterator;
 
 
-public abstract class DBIterator<T> implements Iterator<T> {
+public abstract class DBIterator<T> implements Iterator<T>, AutoCloseable {
 
     private final DBCursor cursor;
 

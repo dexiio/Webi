@@ -5,6 +5,7 @@ import com.vonhof.webi.PathPatternMap;
 import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.bean.AfterInject;
+import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.websockets.SocketService.Client;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -81,7 +82,9 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
         if (service != null) {
             try {
                 Client client = service.newClient();
-                webi.getBeanContext().injectOnly(client);
+                BeanContext beanContextCopy = new BeanContext(webi.getBeanContext());
+                beanContextCopy.injectOnly(client);
+                log.debug("Created web socket client {} for service: {}", client.getClass(), service.getClass());
                 return client;
             } catch (Exception ex) {
                 log.error("Failed while creating websocket", ex);
