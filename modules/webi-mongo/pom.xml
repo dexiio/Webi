@@ -4,7 +4,7 @@
 
   <groupId>com.vonhof</groupId>
   <artifactId>webi-mongo</artifactId>
-  <version>1.4.5</version>
+  <version>1.4.6</version>
   <packaging>jar</packaging>
 
   <name>webi-mongo</name>
@@ -46,7 +46,7 @@
       <dependency>
           <groupId>org.mongodb</groupId>
           <artifactId>mongo-java-driver</artifactId>
-          <version>3.0.2</version>
+          <version>3.0.3</version>
       </dependency>
       <dependency>
       <groupId>${project.groupId}</groupId>
