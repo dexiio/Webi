@@ -8,9 +8,6 @@ cd ../..
 cd modules/webi-maven
 mvn install
 cd ../..
-cd modules/webi-mongo
-mvn install
-cd ../..
 cd modules/webi-php
 mvn install
 cd ../..
