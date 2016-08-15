@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import org.apache.commons.fileupload.FileItem;
+import org.objectweb.asm.Handle;
 
 /**
  * MVC request handling.
@@ -245,7 +246,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     /**
      * Converts HTTP request into a suitable argument list for the specified list of parameters 
      * @param req
-     * @param methodParms
+     * @param method
      * @return
      * @throws Exception 
      */
@@ -263,19 +264,24 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
         }
         if (!bodyParms.isEmpty()) {
             SharkNode body = readBody(req);
-            if (bodyParms.size() == 1) {
-                Entry<Integer, Parameter> entry = bodyParms.entrySet().iterator().next();
-                out[entry.getKey()] = bs.read(body, entry.getValue().getType());
-            } else if (body.is(NodeType.MAP)) {
-                ObjectNode obj = (ObjectNode) body;
-                for(Entry<Integer, Parameter> entry:bodyParms.entrySet()) {
-                    final String name = entry.getValue().getName();
-                    SharkNode val = obj.get(name);
-                    if (val == null)
-                        out[entry.getKey()] = null;
-                    else
-                        out[entry.getKey()] = bs.read(val, entry.getValue().getType());
+            try {
+                if (bodyParms.size() == 1) {
+                    Entry<Integer, Parameter> entry = bodyParms.entrySet().iterator().next();
+                    out[entry.getKey()] = bs.read(body, entry.getValue().getType());
+                } else if (body.is(NodeType.MAP)) {
+                    ObjectNode obj = (ObjectNode) body;
+                    for (Entry<Integer, Parameter> entry : bodyParms.entrySet()) {
+                        final String name = entry.getValue().getName();
+                        SharkNode val = obj.get(name);
+                        if (val == null) {
+                            out[entry.getKey()] = null;
+                        } else {
+                            out[entry.getKey()] = bs.read(val, entry.getValue().getType());
+                        }
+                    }
                 }
+            } catch (MappingException e) {
+                throw new HttpException(HttpException.BAD_REQUEST, e);
             }
         }
         return out;
@@ -427,7 +433,6 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
      * Read body from request. Converts the raw string to a value instance 
      * using content type
      * @param req
-     * @param p
      * @return
      * @throws Exception 
      */
