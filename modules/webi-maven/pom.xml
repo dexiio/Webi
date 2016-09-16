@@ -6,7 +6,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi-maven</artifactId>
-    <version>1.4.13</version>
+    <version>1.4.14</version>
 
 	<properties>
 		<aetherVersion>1.13.1</aetherVersion>
