@@ -4,7 +4,7 @@
 
   <groupId>com.vonhof</groupId>
   <artifactId>webi-php</artifactId>
-  <version>1.4.16</version>
+  <version>1.4.17</version>
   <packaging>jar</packaging>
 
   <name>webi-php</name>

@@ -31,7 +31,8 @@ public class BeanContext {
 
     private Set<Object> injecting = new HashSet<Object>();
     private Set<Object> injected = new HashSet<Object>();
-    private List<AfterInject> afterInjectionCalled = new LinkedList<AfterInject>();
+    private List<AfterInject> afterInjectionCalled = new LinkedList<>();
+    private List<AfterInit> afterInitCalled = new LinkedList<>();
     private List<BeanInjectInterceptor> interceptors = new LinkedList<>();
 
     public BeanContext() {
@@ -131,6 +132,20 @@ public class BeanContext {
         for (Entry<String, Object> entry : new HashSet<>(beansById.entrySet())) {
             inject(entry.getValue(), true);
         }
+
+        for (Entry<Class, Object> entry : new HashSet<>(beansByClass.entrySet())) {
+            if (entry.getValue() instanceof AfterInit && !
+                    afterInitCalled.contains(entry.getValue())) {
+                ((AfterInit)entry.getValue()).afterInit();
+            }
+        }
+
+        for (Entry<String, Object> entry : new HashSet<>(beansById.entrySet())) {
+            if (entry.getValue() instanceof AfterInit && !
+                    afterInitCalled.contains(entry.getValue())) {
+                ((AfterInit)entry.getValue()).afterInit();
+            }
+        }
     }
 
 
@@ -209,6 +224,11 @@ public class BeanContext {
     public <T> T injectOnly(T obj) {
         T out = inject(obj, true);
         injected.remove(out);
+
+        if (out instanceof AfterInit) {
+            ((AfterInit)out).afterInit();
+        }
+
         return out;
     }
 
