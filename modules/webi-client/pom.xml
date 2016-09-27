@@ -1,18 +1,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.vonhof</groupId>
-  <artifactId>webi-client</artifactId>
-  <version>1.4.19</version>
-  <packaging>jar</packaging>
+    <groupId>com.vonhof</groupId>
+    <artifactId>webi-client</artifactId>
+    <version>1.4.21</version>
+    <packaging>jar</packaging>
 
-  <name>webi-client</name>
-  <url>http://maven.apache.org</url>
+    <name>webi-client</name>
+    <url>http://maven.apache.org</url>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
 
 
     <distributionManagement>
@@ -24,7 +24,7 @@
     </distributionManagement>
 
 
-  <build>
+    <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -38,17 +38,17 @@
         </plugins>
     </build>
 
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>3.8.1</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.vonhof</groupId>
-      <artifactId>babelshark</artifactId>
-      <version>1.6.2</version>
-    </dependency>
-  </dependencies>
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>3.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.vonhof</groupId>
+            <artifactId>babelshark</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+    </dependencies>
 </project>

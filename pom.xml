@@ -1,11 +1,10 @@
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi</artifactId>
-    <version>1.4.19</version>
+    <version>1.4.21</version>
     <packaging>jar</packaging>
 
     <name>webi</name>
@@ -37,7 +36,7 @@
             </plugin>
         </plugins>
     </build>
-  
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
