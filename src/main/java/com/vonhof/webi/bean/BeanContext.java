@@ -364,13 +364,18 @@ public class BeanContext {
 
     private <T> BeanWrapper makeBeanProxy(Class<T> clz) {
         AbstractBeanProxy<T> beanProxyHandler = makeBeanProxyHandler(clz);
+
+        if (clz.isInterface()) {
+            log.warn("Can not make proxy for interface: {}", clz);
+            return new BeanWrapper(beanProxyHandler, null);
+        }
         try {
 
             clz = realClass(clz);
 
             return new BeanWrapper(beanProxyHandler, Enhancer.create(
                     clz,
-                    clz.getInterfaces(),
+                    clz.getInterfaces().length > 0 ? clz.getInterfaces() : null,
                     beanProxyHandler
             ));
         } catch (IllegalArgumentException e) {
