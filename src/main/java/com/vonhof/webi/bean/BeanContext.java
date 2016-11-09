@@ -1,18 +1,14 @@
 package com.vonhof.webi.bean;
 
-import com.vonhof.babelshark.ReflectUtils;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.FieldInfo;
 import net.sf.cglib.proxy.Enhancer;
-import net.sf.cglib.proxy.MethodInterceptor;
-import net.sf.cglib.proxy.MethodProxy;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.lang.reflect.Method;
+import javax.inject.Inject;
 import java.util.*;
 import java.util.Map.Entry;
-import javax.inject.Inject;
 
 /**
  * Handles dependency injection
@@ -23,60 +19,77 @@ public class BeanContext {
     private final static Logger log = LogManager.getLogger(BeanContext.class.getName());
     private Map<Class, Object> beansByClass = new HashMap<Class, Object>();
     private Map<String, Object> beansById = new HashMap<String, Object>();
+    private Map<Class, BeanWrapper> proxiesByClass = new HashMap<>();
+    private Map<String, BeanWrapper> proxiesById = new HashMap<>();
 
-    private Map<Class, ThreadLocalWrapper> wrappersByClass = new HashMap<Class, ThreadLocalWrapper>();
+    private List<ThreadLocalBeanProxy> threadLocalBeanProxies = new ArrayList<>();
 
-    private Map<Class, Object> proxiesByClass = new HashMap<Class, Object>();
-    private Map<String, Object> proxiesById = new HashMap<String, Object>();
-
-    private Set<Object> injecting = new HashSet<Object>();
-    private Set<Object> injected = new HashSet<Object>();
     private List<AfterInject> afterInjectionCalled = new LinkedList<>();
     private List<AfterInit> afterInitCalled = new LinkedList<>();
-    private List<BeanInjectInterceptor> interceptors = new LinkedList<>();
+    private List<BeanInvocationInterceptor> interceptors = new LinkedList<>();
+    private boolean disableThreadLocals = false;
+    private boolean initialized = false;
 
     public BeanContext() {
-        //Add myself
         add(this);
     }
 
     public BeanContext(BeanContext other) {
-
-
-        proxiesByClass.putAll(other.proxiesByClass);
-        proxiesById.putAll(other.proxiesById);
+        //We disable thread locals in copies to make them easy to provide the threaded workers
+        disableThreadLocals = true;
 
         beansByClass.putAll(other.beansByClass);
         beansById.putAll(other.beansById);
 
-        add(this);
+        proxiesByClass.putAll(other.proxiesByClass);
+        proxiesById.putAll(other.proxiesById);
+
+        replace(this);
 
         afterInjectionCalled.addAll(other.afterInjectionCalled);
         interceptors.addAll(other.interceptors);
 
-        //Add thread locals as "normal" beans - this is a temp copy.
-        for(ThreadLocalWrapper wrapper : other.wrappersByClass.values()) {
-            if (wrapper.threadLocal.get() == null) {
+        for (ThreadLocalBeanProxy threadLocalBeanProxy : other.threadLocalBeanProxies) {
+            if (threadLocalBeanProxy.getNullableBean() == null) {
                 continue;
             }
-            add(wrapper.threadLocal.get());
+
+            add(threadLocalBeanProxy.getNullableBean());
         }
 
-
+        initialized = true;
     }
 
     public Map<String, Object> getBeans() {
         return beansById;
     }
 
+    public <T> void replace(T bean) {
+        proxiesByClass.remove(bean.getClass());
+        add(bean);
+    }
+
     public <T> void add(Class<T> clz, T bean) {
         beansByClass.put(clz, bean);
-        proxiesByClass.put(clz, intercept(bean));
+        BeanWrapper beanWrapper = proxiesByClass.get(clz);
+
+        if (disableThreadLocals &&
+                beanWrapper != null &&
+                beanWrapper.getProxyHandler() instanceof ThreadLocalBeanProxy) {
+            beanWrapper = null;
+        }
+        if (beanWrapper != null) {
+            beanWrapper.setBean(bean);
+        } else {
+            proxiesByClass.put(clz, makeBeanProxy(bean));
+        }
+
+        //This injects just the things available at this point in time - but is guaranteed to inject the bean context itself.
+        injectFields(bean);
+
         if (bean instanceof AfterAdd) {
             ((AfterAdd) bean).afterAdd(this);
         }
-
-        inject(bean, false);
     }
 
     public <T> void add(T bean) {
@@ -85,27 +98,42 @@ public class BeanContext {
 
     public <T> void add(String id, T bean) {
         beansById.put(id, bean);
-        proxiesById.put(id, intercept(bean));
-        if (bean instanceof AfterAdd) {
-            ((AfterAdd) bean).afterAdd(this);
+        BeanWrapper beanWrapper = proxiesById.get(id);
+        if (disableThreadLocals &&
+                beanWrapper.getProxyHandler() instanceof ThreadLocalBeanProxy) {
+            beanWrapper = null;
         }
+        if (beanWrapper != null) {
+            beanWrapper.setBean(bean);
+        } else {
+            proxiesById.put(id, makeBeanProxy(bean));
+        }
+
         add(bean);
     }
 
     public <T> T get(Class<T> beanClz) {
-        Object obj = proxiesByClass.get(beanClz);
-        if (obj instanceof ThreadLocal) {
-            obj = ((ThreadLocal) obj).get();
+        BeanWrapper wrapper = proxiesByClass.get(beanClz);
+        if (wrapper == null) {
+            return null;
         }
-        return (T) obj;
+
+        if (wrapper.getProxy() instanceof ThreadLocal) {
+            return (T) ((ThreadLocal) wrapper.getProxy()).get();
+        }
+        return (T) wrapper.getProxy();
     }
 
     public <T> T get(String id) {
-        Object obj = proxiesById.get(id);
-        if (obj instanceof ThreadLocal) {
-            obj = ((ThreadLocal) obj).get();
+        BeanWrapper wrapper = proxiesById.get(id);
+        if (wrapper == null) {
+            return null;
         }
-        return (T) obj;
+
+        if (wrapper.getProxy() instanceof ThreadLocal) {
+            return (T) ((ThreadLocal) wrapper.getProxy()).get();
+        }
+        return (T) wrapper.getProxy();
     }
 
     protected <T> T getOriginal(Class<T> beanClz) {
@@ -124,26 +152,51 @@ public class BeanContext {
         return (T) obj;
     }
 
-    public void injectAll() {
-        for (Entry<Class, Object> entry : new HashSet<>(beansByClass.entrySet())) {
-            inject(entry.getValue(), true);
+    public boolean isInitialized() {
+        return initialized;
+    }
+
+    public void init() {
+        if (initialized) {
+            throw new IllegalStateException("Bean Context was already initialized");
         }
 
-        for (Entry<String, Object> entry : new HashSet<>(beansById.entrySet())) {
-            inject(entry.getValue(), true);
-        }
+        initialized = true;
 
-        for (Entry<Class, Object> entry : new HashSet<>(beansByClass.entrySet())) {
-            if (entry.getValue() instanceof AfterInit && !
-                    afterInitCalled.contains(entry.getValue())) {
-                ((AfterInit)entry.getValue()).afterInit();
+        for (Entry<Class, BeanWrapper> entry : new HashSet<>(proxiesByClass.entrySet())) {
+            if (entry.getValue().getBean() == null) {
+                throw new IllegalStateException("Missing bean for type: " + entry.getKey());
             }
+
+            inject(entry.getValue().getBean());
         }
 
-        for (Entry<String, Object> entry : new HashSet<>(beansById.entrySet())) {
-            if (entry.getValue() instanceof AfterInit && !
-                    afterInitCalled.contains(entry.getValue())) {
-                ((AfterInit)entry.getValue()).afterInit();
+        for (Entry<String, BeanWrapper> entry : new HashSet<>(proxiesById.entrySet())) {
+
+            if (entry.getValue().getBean() == null) {
+                throw new IllegalStateException("Missing bean for ID: " + entry.getKey());
+            }
+
+            inject(entry.getValue().getBean());
+        }
+
+        for (Entry<Class, BeanWrapper> entry : new HashSet<>(proxiesByClass.entrySet())) {
+            Object bean = entry.getValue().getBean();
+            if (bean instanceof AfterInit &&
+                    !afterInitCalled.contains(bean)) {
+                ((AfterInit) bean).afterInit();
+                afterInitCalled.add(((AfterInit) bean));
+            }
+
+
+        }
+
+        for (Entry<String, BeanWrapper> entry : new HashSet<>(proxiesById.entrySet())) {
+            Object bean = entry.getValue().getBean();
+            if (bean instanceof AfterInit &&
+                    !afterInitCalled.contains(bean)) {
+                ((AfterInit) bean).afterInit();
+                afterInitCalled.add(((AfterInit) bean));
             }
         }
     }
@@ -157,62 +210,51 @@ public class BeanContext {
         return clz;
     }
 
-    private <T> T inject(T obj, boolean required) {
-        if (injected.contains(obj)) {
-            return obj;
+    private <T> T injectFields(T obj) {
+        if (Enhancer.isEnhanced(obj.getClass())) {
+            throw new IllegalArgumentException("Should only inject on actual beans - not proxies: " + obj.getClass());
         }
 
-        Class<?> realClass = realClass(obj.getClass());
+        ClassInfo<?> classInfo = ClassInfo.from(obj.getClass());
 
-        ClassInfo<?> clz = ClassInfo.from(realClass);
-        Map<String, FieldInfo> fields = clz.getFields();
-        boolean injectedAll = true;
-        for (FieldInfo f : fields.values()) {
+        for (FieldInfo f : classInfo.getFields().values()) {
             Inject annotation = f.getAnnotation(Inject.class);
+
+            if (annotation == null) {
+                continue;
+            }
+
             f.forceAccessible();
-            injecting.add(obj);
+
             try {
                 Object value = f.get(obj);
-                if (annotation != null
-                        && value == null) {
-                    Object bean = getBeanForField(f);
-                    if (bean != null) {
-                        f.set(obj, bean);
-                    } else {
-                        injectedAll = false;
-                        if (required) {
-                            throw new RuntimeException(
-                                    String.format("No bean registered for class: %s in %s",
-                                            f.getType().getName(),
-                                            realClass.getName()));
-                        }
-                    }
+                if (value != null) {
+                    continue;
                 }
+            } catch (IllegalAccessException e) {
+                log.error("Failed to read bean", e);
+            }
 
-                if (value != null
-                        && ReflectUtils.isBean(value.getClass())
-                        && !f.getType().getFieldsByAnnotation(Inject.class).isEmpty()) {
-                    //Recurse
-                    if (Enhancer.isEnhanced(value.getClass())) {
-                        value = getRealBeanForField(f);
-                    }
-                    if (!injecting.contains(value)) {
-                        inject(value, required);
-                    }
-                }
-            } catch (Throwable ex) {
-                log.fatal("Failed while injecting beans", ex);
-            } finally {
-                injecting.remove(obj);
+            BeanWrapper newWrapper = getOrMakeWrapper(f.getType());
+
+            if (newWrapper.getProxy() == null) {
+                throw new IllegalStateException("Bean not available for field: " + f);
+            }
+
+            try {
+                f.set(obj, newWrapper.getProxy());
+            } catch (IllegalAccessException e) {
+                log.error("Failed to set bean", e);
             }
         }
 
-        if (injectedAll) {
-            injected.add(obj);
-        }
-        //Only call if all fields were injected (it may be too soon)
-        if (injectedAll &&
-                obj instanceof AfterInject &&
+        return obj;
+    }
+
+    private <T> T inject(T obj) {
+        injectFields(obj);
+
+        if (obj instanceof AfterInject &&
                 !afterInjectionCalled.contains(obj)) {
             afterInjectionCalled.add(((AfterInject) obj));
             ((AfterInject) obj).afterInject();
@@ -221,9 +263,18 @@ public class BeanContext {
         return obj;
     }
 
+    private BeanWrapper getOrMakeWrapper(Class type) {
+        BeanWrapper wrapper = proxiesByClass.get(type);
+        if (wrapper == null) {
+            wrapper = makeBeanProxy(type);
+            proxiesByClass.put(type, wrapper);
+        }
+
+        return wrapper;
+    }
+
     public <T> T injectOnly(T obj) {
-        T out = inject(obj, true);
-        injected.remove(out);
+        T out = inject(obj);
 
         if (out instanceof AfterInit) {
             ((AfterInit)out).afterInit();
@@ -234,96 +285,88 @@ public class BeanContext {
 
     private Object getBeanForField(FieldInfo f) {
         Object bean = get(f.getName());
-        if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
+        if (bean != null && !f.getType().isAssignableFrom(bean.getClass())) {
             bean = null;
         }
         if (bean == null)
-            bean = get(f.getType().getType());
+            bean = get(f.getType());
         return bean;
     }
 
     private Object getRealBeanForField(FieldInfo f) {
         Object bean = getOriginal(f.getName());
-        if (bean != null && !f.getType().getType().isAssignableFrom(bean.getClass())) {
+        if (bean != null && !f.getType().isAssignableFrom(bean.getClass())) {
             bean = null;
         }
         if (bean == null)
-            bean = getOriginal(f.getType().getType());
+            bean = getOriginal(f.getType());
         return bean;
     }
 
-    public void addInjectInterceptor(BeanInjectInterceptor interceptor) {
+    private <T> BeanWrapper makeBeanProxy(T obj) {
+        BeanWrapper wrapper = makeBeanProxy(obj.getClass());
+        wrapper.setBean(obj);
+        return wrapper;
+    }
+
+    private <T> BeanWrapper makeBeanProxy(Class<T> clz) {
+        AbstractBeanProxy<T> beanProxyHandler = makeBeanProxyHandler(clz);
+        try {
+
+            return new BeanWrapper(beanProxyHandler, Enhancer.create(
+                    clz,
+                    clz.getInterfaces(),
+                    beanProxyHandler
+            ));
+        } catch (IllegalArgumentException e) {
+            log.warn("Can not make proxy for class: {} - Error: {}", clz, e.getMessage());
+
+            return new BeanWrapper(beanProxyHandler, null);
+        }
+    }
+
+    private <T> AbstractBeanProxy<T> makeBeanProxyHandler(Class<T> clz) {
+        BeanScope annotation = clz.getAnnotation(BeanScope.class);
+        if (annotation == null ||
+                annotation.value() == BeanScope.Type.GLOBAL ||
+                disableThreadLocals) {
+            return new BeanProxy<>(getInterceptorsFor(clz));
+        }
+
+        ThreadLocalBeanProxy out = new ThreadLocalBeanProxy<>(getInterceptorsFor(clz));
+        threadLocalBeanProxies.add(out);
+        return out;
+    }
+
+
+    private <T> Collection<BeanInvocationInterceptor> getInterceptorsFor(Class<T> clz) {
+        Collection<BeanInvocationInterceptor> out = new ArrayList<>();
+
+        for (BeanInvocationInterceptor interceptor : interceptors) {
+            if (interceptor.shouldApply(clz)) {
+                out.add(interceptor);
+            }
+        }
+
+        return out;
+    }
+
+    public void addInjectInterceptor(BeanInvocationInterceptor interceptor) {
         this.interceptors.add(interceptor);
     }
 
-    private <T> T intercept(T obj) {
-        for(BeanInjectInterceptor interceptor : interceptors) {
-            obj = interceptor.intercept(obj);
-        }
-
-        return obj;
-    }
-
-    public <T> void addThreadLocal(T bean) {
-        if (bean == null) {
-            return;
-        }
-
-        final Class beanClass = bean.getClass();
-        addThreadLocal(beanClass, bean);
-    }
-
-    public <T> void addThreadLocal(Class<T> beanClass, T bean) {
-
-        ThreadLocalWrapper<T> wrapper = wrappersByClass.get(beanClass);
-        if (wrapper == null) {
-            wrapper = new ThreadLocalWrapper<T>();
-            wrapper.setBean(bean);
-            wrappersByClass.put(beanClass, wrapper);
-            T proxyBean = (T) Enhancer.create(beanClass, beanClass.getInterfaces(), wrapper);
-            add(beanClass, proxyBean);
-        } else {
-            wrapper.setBean(bean);
-        }
-    }
-
-    public <T> void clearThreadLocal(T bean) {
-        clearThreadLocal(bean.getClass());
-    }
-
-    public <T> T getThreadLocal(Class<T> beanClass) {
-        ThreadLocalWrapper<T> wrapper = wrappersByClass.get(beanClass);
-        return wrapper.threadLocal.get();
-    }
-
     public <T> void clearThreadLocal(Class<T> beanClass) {
-        ThreadLocalWrapper<T> wrapper = wrappersByClass.get(beanClass);
-        if (wrapper != null) {
-            wrapper.setBean(null);
+        for(ThreadLocalBeanProxy entry : threadLocalBeanProxies) {
+            if (entry.getNullableBean() != null &&
+                    entry.getNullableBean().getClass().equals(beanClass)) {
+                entry.setBean(null);
+            }
         }
     }
 
     public void clearThreadLocals() {
-        for(Entry<Class,ThreadLocalWrapper> entry : wrappersByClass.entrySet()) {
-            entry.getValue().setBean(null);
-        }
-    }
-
-    private final class ThreadLocalWrapper<T> implements MethodInterceptor {
-
-        private final ThreadLocal<T> threadLocal = new ThreadLocal<T>();
-
-        public final void setBean(T bean) {
-            threadLocal.set(bean);
-        }
-
-        @Override
-        public Object intercept(Object proxy, Method method, Object[] objects, MethodProxy methodProxy) throws Throwable {
-            T instance = threadLocal.get();
-            if (instance == null) {
-                throw new IllegalStateException("Method was called on thread local instance before the instance had been set");
-            }
-            return method.invoke(instance, objects);
+        for(ThreadLocalBeanProxy entry : threadLocalBeanProxies) {
+            entry.setBean(null);
         }
     }
 }

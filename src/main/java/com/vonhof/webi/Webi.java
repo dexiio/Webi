@@ -195,7 +195,9 @@ public final class Webi {
      * @throws Exception
      */
     public void start() throws Exception {
-        beanContext.injectAll();
+        if (!beanContext.isInitialized()) {
+            beanContext.init();
+        }
 
         GzipHandler gzipHandler = new GzipHandler();
         gzipHandler.setHandler(new Handler());
@@ -451,8 +453,8 @@ public final class Webi {
                         request, response,
                         sessionResolver);
 
-                beanContext.addThreadLocal(wr);
-                beanContext.addThreadLocal(wr.getSession());
+                beanContext.add(wr);
+                beanContext.add(wr.getSession());
 
                 for (Filter filter : filters.getAll(path)) {
                     if (!filter.apply(wr)) {

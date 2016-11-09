@@ -14,7 +14,9 @@ import com.vonhof.webi.WebiContext.ParmMap;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Handler;
 import com.vonhof.webi.annotation.Parm;
-import com.vonhof.webi.bean.AfterInject;
+import com.vonhof.webi.bean.AfterAdd;
+import com.vonhof.webi.bean.AfterInit;
+import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
@@ -25,13 +27,12 @@ import java.util.Map.Entry;
 import javax.inject.Inject;
 import javax.servlet.ServletException;
 import org.apache.commons.fileupload.FileItem;
-import org.objectweb.asm.Handle;
 
 /**
  * MVC request handling.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class RESTServiceHandler implements RequestHandler,AfterInject {
+public class RESTServiceHandler implements RequestHandler, AfterAdd {
     
     @Inject
     private Webi webi;
@@ -63,17 +64,19 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
     
     public void expose(Object obj) {
         urlMapper.expose(obj);
-        webi.addBean(obj);
+        maybeAddToWebi(obj);
     }
     
     public void expose(Object obj, String baseUrl) {
         urlMapper.expose(obj, baseUrl);
-        webi.addBean(obj);
+        maybeAddToWebi(obj);
     }
-    
-    public void expose(String id,Object obj) {
-        urlMapper.expose(obj);
-        webi.addBean(id,obj);
+
+    private void maybeAddToWebi(Object obj) {
+        if (webi == null) {
+            return;
+        }
+        webi.addBean(obj);
     }
 
     public void addAllowedOrigin(String host) {
@@ -267,7 +270,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
             try {
                 if (bodyParms.size() == 1) {
                     Entry<Integer, Parameter> entry = bodyParms.entrySet().iterator().next();
-                    out[entry.getKey()] = bs.read(body, entry.getValue().getType());
+                    out[entry.getKey()] = bs.read(body, entry.getValue().getClassInfo());
                 } else if (body.is(NodeType.MAP)) {
                     ObjectNode obj = (ObjectNode) body;
                     for (Entry<Integer, Parameter> entry : bodyParms.entrySet()) {
@@ -276,7 +279,7 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
                         if (val == null) {
                             out[entry.getKey()] = null;
                         } else {
-                            out[entry.getKey()] = bs.read(val, entry.getValue().getType());
+                            out[entry.getKey()] = bs.read(val, entry.getValue().getClassInfo());
                         }
                     }
                 }
@@ -311,18 +314,18 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
                 break;
             case HEADER:
                 String headerValue = req.getHeader(name);
-                if (ReflectUtils.isSimple(p.getType().getType())) {
-                    value = ConvertUtils.convert(headerValue, p.getType().getType());
+                if (ReflectUtils.isSimple(p.getType())) {
+                    value = ConvertUtils.convert(headerValue, p.getType());
                 } else {
                     value = headerValue;
                 }
                 break;
             case INJECT:
-                value = webi.getBean(p.getType().getType());
+                value = webi.getBean(p.getType());
                 break;
             case SESSION:
                 value = req.getSession().get(name);
-                if (!p.getType().isAssignableFrom(value.getClass())) {
+                if (!ClassInfo.isAssignableFrom(value.getClass(), p.getType())) {
                     value = req.getSession().get(p.getType().getName());
                 }
                 
@@ -332,35 +335,35 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
                     //Is handled outside this method while there could be more than 1
                     return null;
                 }
-                if (p.getType().inherits(InputStream.class)) {
+                if (ClassInfo.inherits(p.getType(), InputStream.class)) {
                     value = req.getInputStream();
                     break;
                 }
-                if (p.getType().inherits(OutputStream.class)) {
+                if (ClassInfo.inherits(p.getType(), OutputStream.class)) {
                     value = req.getOutputStream();
                     break;
                 }
-                if (p.getType().inherits(WebiContext.class)) {
+                if (ClassInfo.inherits(p.getType(), WebiContext.class)) {
                     value = req;
                     break;
                 }
                 
-                if (p.getType().isA(FileItem.class)) {
+                if (ClassInfo.inherits(p.getType(), FileItem.class)) {
                     value = req.getUpload(name);
                     break;
                 }
                 
-                if (p.getType().isA(TextFile.class)) {
+                if (ClassInfo.inherits(p.getType(), TextFile.class)) {
                     value = new TextFile(req.getUpload(name));
                     break;
                 }
                 
-                if (p.getType().inherits(WebiSession.class)) {
+                if (ClassInfo.inherits(p.getType(), WebiSession.class)) {
                     value = req.getSession();
                     break;
                 }
                 
-                if (p.getType().inherits(ParmMap.class)) {
+                if (ClassInfo.inherits(p.getType(), ParmMap.class)) {
                     value = req.getParameterMap();
                     break;
                 }
@@ -385,21 +388,21 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
      * Refine output value
      * @param value
      * @param type
-     * @return 
+     * @return
      */
-    private Object refineValue(Object value,ClassInfo type) {
+    private Object refineValue(Object value, Class type) {
         if (value != null) 
             return value;
         //Make sure certain values never is null
-        if (type.isA(String.class))
+        if (ClassInfo.isString(type))
             return "";
         if (type.isArray())
             return new Object[0];
-        if (type.inherits(Set.class))
+        if (ClassInfo.inherits(type, Set.class))
             return Collections.EMPTY_SET;
-        if (type.inherits(Map.class))
+        if (ClassInfo.inherits(type, Map.class))
             return Collections.EMPTY_MAP;
-        if (type.inherits(Collection.class))
+        if (ClassInfo.inherits(type, Collection.class))
             return Collections.EMPTY_LIST;
         return value;
     }
@@ -448,11 +451,14 @@ public class RESTServiceHandler implements RequestHandler,AfterInject {
      * @throws Exception 
      */
     private Object readGETParm(Parameter p, String[] values) throws Exception {
-        return ConvertUtils.convertCollection(p.getType(),values);
+        return ConvertUtils.convertCollection(p.getClassInfo(),values);
     }
 
-    public void afterInject() {
-        webi.addBean(UrlMapper.class,urlMapper);
+    @Override
+    public void afterAdd(BeanContext context) {
+        context.add(UrlMapper.class, urlMapper);
+        for(Object controller : urlMapper.getControllers()) {
+            context.add(controller);
+        }
     }
-
 }

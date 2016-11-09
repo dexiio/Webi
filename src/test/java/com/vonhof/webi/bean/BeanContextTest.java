@@ -15,21 +15,21 @@ public class BeanContextTest {
 
         final BeanContext bc = new BeanContext();
 
-        assertNull(bc.get(SimpleBean.class));
+        assertNull(bc.get(SimpleLocalBean.class));
 
-        SimpleBean mainBean = new SimpleBean("main");
-        bc.addThreadLocal(mainBean);
+        SimpleLocalBean mainBean = new SimpleLocalBean("main");
+        bc.add(mainBean);
 
-        assertEquals(mainBean.hashCode(), bc.get(SimpleBean.class).hashCode());
+        assertEquals(mainBean.hashCode(), bc.get(SimpleLocalBean.class).hashCode());
 
         ThrowingThread thread = new ThrowingThread() {
 
             @Override
             public void runThrows() throws Throwable {
-                SimpleBean proxyBean = bc.get(SimpleBean.class);
+                SimpleLocalBean proxyBean = bc.get(SimpleLocalBean.class);
 
-                SimpleBean threadedBean = new SimpleBean("threaded");
-                bc.addThreadLocal(threadedBean);
+                SimpleLocalBean threadedBean = new SimpleLocalBean("threaded");
+                bc.add(threadedBean);
 
 
                 assertEquals(threadedBean.hashCode(), proxyBean.hashCode());
@@ -41,13 +41,13 @@ public class BeanContextTest {
         thread.join();
         thread.done();
 
-        assertEquals(mainBean.hashCode(), bc.get(SimpleBean.class).hashCode());
+        assertEquals(mainBean.hashCode(), bc.get(SimpleLocalBean.class).hashCode());
 
         ThrowingThread thread2 = new ThrowingThread() {
 
             @Override
             public void runThrows() throws Throwable {
-                SimpleBean proxyBean = bc.get(SimpleBean.class);
+                SimpleLocalBean proxyBean = bc.get(SimpleLocalBean.class);
 
                 proxyBean.getValue();
             }
@@ -65,23 +65,23 @@ public class BeanContextTest {
 
         final SimpleBeanUser beanUser = new SimpleBeanUser();
 
-        SimpleBean mainBean = new SimpleBean("main");
-        bc.addThreadLocal(mainBean);
+        SimpleLocalBean mainBean = new SimpleLocalBean("main");
+        bc.add(mainBean);
 
         bc.injectOnly(beanUser);
 
-        assertNotNull(beanUser.getSimpleBean());
+        assertNotNull(beanUser.getSimpleLocalBean());
 
-        assertEquals(mainBean.getValue(), beanUser.getSimpleBean().getValue());
+        assertEquals(mainBean.getValue(), beanUser.getSimpleLocalBean().getValue());
 
         ThrowingThread thread = new ThrowingThread() {
 
             @Override
             public void runThrows() throws Throwable {
-                SimpleBean threadedBean = new SimpleBean("threaded");
-                bc.addThreadLocal(threadedBean);
+                SimpleLocalBean threadedBean = new SimpleLocalBean("threaded");
+                bc.add(threadedBean);
 
-                assertEquals(threadedBean.getValue(), beanUser.getSimpleBean().getValue());
+                assertEquals(threadedBean.getValue(), beanUser.getSimpleLocalBean().getValue());
             }
         };
 
@@ -90,16 +90,62 @@ public class BeanContextTest {
         thread.join();
         thread.done();
 
-        assertEquals(mainBean.getValue(), beanUser.getSimpleBean().getValue());
+        assertEquals(mainBean.getValue(), beanUser.getSimpleLocalBean().getValue());
     }
 
-    public static class SimpleBeanUser {
+    @Test
+    public void can_inject_variables_into_bean() throws Throwable {
+
+        final BeanContext bc = new BeanContext();
+
+        final SimpleBeanContainer beanContainer = new SimpleBeanContainer();
+
+        assertNull(beanContainer.getSimpleBean());
+
+        SimpleBean simpleBean = new SimpleBean();
+        bc.add(simpleBean);
+
+        bc.injectOnly(beanContainer);
+
+        assertNotNull(beanContainer.getSimpleBean());
+
+        assertEquals(false, simpleBean.isState());
+
+
+        simpleBean.setState(true);
+
+        assertTrue(beanContainer.getSimpleBean().isState());
+    }
+
+    public static class SimpleBean {
+        private boolean state;
+
+        public boolean isState() {
+            return state;
+        }
+
+        public void setState(boolean state) {
+            this.state = state;
+        }
+    }
+
+    public static class SimpleBeanContainer {
 
         @Inject
         private SimpleBean simpleBean;
 
         public SimpleBean getSimpleBean() {
             return simpleBean;
+        }
+    }
+
+    public static class SimpleBeanUser {
+
+        @Inject
+        private SimpleLocalBean simpleLocalBean;
+
+        public SimpleLocalBean getSimpleLocalBean() {
+            return simpleLocalBean;
         }
     }
 
@@ -126,16 +172,17 @@ public class BeanContextTest {
         abstract public void runThrows() throws Throwable;
     }
 
-    public static class SimpleBean {
+    @BeanScope(BeanScope.Type.LOCAL)
+    public static class SimpleLocalBean {
         private final String value;
 
 
-        public SimpleBean() {
+        public SimpleLocalBean() {
             value = null;
         }
 
 
-        public SimpleBean(String value) {
+        public SimpleLocalBean(String value) {
             this.value = value;
         }
 
@@ -148,7 +195,7 @@ public class BeanContextTest {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
 
-            SimpleBean that = (SimpleBean) o;
+            SimpleLocalBean that = (SimpleLocalBean) o;
 
             if (value != null ? !value.equals(that.value) : that.value != null) return false;
 

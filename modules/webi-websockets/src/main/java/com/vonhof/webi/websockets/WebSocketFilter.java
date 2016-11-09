@@ -4,6 +4,8 @@ import com.vonhof.webi.Filter;
 import com.vonhof.webi.PathPatternMap;
 import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
+import com.vonhof.webi.bean.AfterAdd;
+import com.vonhof.webi.bean.AfterInit;
 import com.vonhof.webi.bean.AfterInject;
 import com.vonhof.webi.bean.BeanContext;
 import com.vonhof.webi.websockets.SocketService.Client;
@@ -22,7 +24,7 @@ import java.io.IOException;
  *
  * @author Henrik Hofmeister <@vonhofdk>
  */
-public class WebSocketFilter extends WebSocketServerFactory implements Filter {
+public class WebSocketFilter extends WebSocketServerFactory implements Filter, AfterAdd {
     private static final Logger log = LogManager.getLogger(WebSocketFilter.class);
 
     @Inject
@@ -35,9 +37,12 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
 
     public WebSocketFilter() {
         super();
+    }
+
+    @Override
+    public void afterAdd(BeanContext context) {
         getPolicy().setIdleTimeout(Long.MAX_VALUE);
         getPolicy().setMaxTextMessageSize(Integer.MAX_VALUE);
-
     }
 
     /**
@@ -46,7 +51,6 @@ public class WebSocketFilter extends WebSocketServerFactory implements Filter {
      */
     public <T extends SocketService> T  add(String path,T service) {
         webSockets.put(path, service);
-        webi.addBean(service);
         return service;
     }
 

@@ -14,7 +14,6 @@ import org.apache.logging.log4j.Logger;
 import org.eclipse.jetty.io.EofException;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
-import org.eclipse.jetty.websocket.api.WebSocketListener;
 
 import javax.inject.Inject;
 import java.lang.reflect.InvocationTargetException;
@@ -223,13 +222,13 @@ public class SocketService<T extends SocketService.Client>  {
                 Object[] args = new Object[parmTypes.length];
                 for (int i = 0; i < args.length; i++) {
                     Parameter p = parmTypes[i];
-                    if (p.getType().inherits(Client.class)) {
+                    if (p.getClassInfo().inherits(Client.class)) {
                         args[i] = this;
                         continue;
                     }
                     SharkNode arg = argsNode.get(argI);
                     if (arg != null) {
-                        args[i] = bs.read(arg, p.getType());
+                        args[i] = bs.read(arg, p.getClassInfo());
                     }
                     argI++;
                 }

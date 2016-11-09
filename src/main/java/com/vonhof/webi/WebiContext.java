@@ -1,5 +1,6 @@
 package com.vonhof.webi;
 
+import com.vonhof.webi.bean.BeanScope;
 import com.vonhof.webi.session.SessionHandler;
 import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
@@ -20,6 +21,7 @@ import org.eclipse.jetty.server.Request;
  * Webi context wraps request, response and paths.
  * @author Henrik Hofmeister <@vonhofdk>
  */
+@BeanScope(BeanScope.Type.LOCAL)
 public class WebiContext {
     private static final ServletFileUpload fileUpload = new ServletFileUpload(new DiskFileItemFactory());
     private final String path;

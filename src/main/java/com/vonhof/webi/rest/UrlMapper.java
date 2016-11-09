@@ -2,6 +2,8 @@ package com.vonhof.webi.rest;
 
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.webi.HttpMethod;
+
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -40,4 +42,6 @@ public interface UrlMapper {
      * @return 
      */
     public Map<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> getMethods();
+
+    Collection<Object> getControllers();
 }

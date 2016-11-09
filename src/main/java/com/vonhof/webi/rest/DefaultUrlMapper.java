@@ -10,6 +10,7 @@ import com.vonhof.webi.bean.BeanContext;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -63,6 +64,10 @@ public class DefaultUrlMapper implements UrlMapper {
         return actions;
     }
     
+
+    public Collection<Object> getControllers() {
+        return controllers.values();
+    }
 
     protected String getMethodURL(MethodInfo m) {
         Path path = m.getAnnotation(Path.class);

@@ -18,7 +18,7 @@ import javax.inject.Inject;
 public class WebiSocketResource extends WebiController {
     
     @Inject
-    WebSocketFilter webSocketFilter;
+    private WebSocketFilter webSocketFilter;
 
     @Override
     public ObjectNode service(WebiContext ctxt) {
@@ -27,7 +27,7 @@ public class WebiSocketResource extends WebiController {
         
         //Generate web socket service information
         ObjectNode socketsNode = out.putObject("sockets");
-        for(Map.Entry<String,SocketService> service:webSocketFilter.getWebSockets().entrySet()) {
+        for(Map.Entry<String,SocketService> service: webSocketFilter.getWebSockets().entrySet()) {
             ClassInfo<?> classInfo = service.getValue().getClientClass();
             String name = "";
             if (classInfo.hasAnnotation(Name.class))

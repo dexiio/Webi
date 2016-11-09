@@ -11,7 +11,6 @@ import com.vonhof.babelshark.reflect.FieldInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpMethod;
-import com.vonhof.webi.Webi;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Body;
 import com.vonhof.webi.annotation.Parm;
@@ -39,10 +38,7 @@ public class WebiController {
 
     @Inject
     private UrlMapper urlMapper;
-    
-    @Inject 
-    private Webi webi;
-    
+
     public ObjectNode service(WebiContext ctxt) {
         ObjectNode out = new ObjectNode();
         out.put("url",ctxt.getBase());
@@ -90,7 +86,7 @@ public class WebiController {
             if (field.isStatic() || field.getField().isSynthetic())
                 continue;
             
-            final ClassInfo fieldInfo = field.getType();
+            final ClassInfo fieldInfo = field.getClassInfo();
             final SharkType fieldType = SharkType.get(fieldInfo);
             
             Name nameAnno = field.getAnnotation(Name.class);
@@ -198,7 +194,7 @@ public class WebiController {
         methodObject.put("method", httpMethod);
         methodObject.put("url", String.format("%s/%s", baseUrl, methodUrl));
 
-        SharkType returnType = SharkType.get(method.getReturnType());
+        SharkType returnType = SharkType.get(method.getReturnClassInfo());
         if (!returnType.isA(Void.TYPE)) {
             methodObject.put("returns", getTypeName(returnType));
             if (!returnType.isPrimitive()) {
@@ -216,11 +212,11 @@ public class WebiController {
         for (Entry<String, Parameter> entry : parms.entrySet()) {
             Parameter parm = entry.getValue();
 
-            if (parm.getType().hasAnnotation(Ignore.class)) {
+            if (parm.getClassInfo().hasAnnotation(Ignore.class)) {
                 continue;
             }
             
-            SharkType type = SharkType.get(parm.getType());
+            SharkType type = SharkType.get(parm.getClassInfo());
             
             if (type.inherits(WebiSession.class)
                     || type.inherits(WebiContext.class)
@@ -279,10 +275,10 @@ public class WebiController {
 
             arg.put("name", entry.getKey());
             arg.put("type", getTypeName(type));
-            if (parm.getType().isEnum()) {
+            if (parm.getClassInfo().isEnum()) {
                 arg.put("type", "enum");
                 ArrayNode enumNode = arg.putArray("enum");
-                for(Object val:parm.getType().getEnumConstants()) {
+                for(Object val:parm.getClassInfo().getEnumConstants()) {
                     enumNode.add((Enum)val);
                 }
             }
