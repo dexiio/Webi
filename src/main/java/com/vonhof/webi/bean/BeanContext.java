@@ -81,7 +81,7 @@ public class BeanContext {
         if (beanWrapper != null) {
             beanWrapper.setBean(bean);
         } else {
-            proxiesByClass.put(clz, makeBeanProxy(bean));
+            proxiesByClass.put(clz, makeBeanProxy(clz, bean));
         }
 
         //This injects just the things available at this point in time - but is guaranteed to inject the bean context itself.
@@ -106,7 +106,7 @@ public class BeanContext {
         if (beanWrapper != null) {
             beanWrapper.setBean(bean);
         } else {
-            proxiesById.put(id, makeBeanProxy(bean));
+            proxiesById.put(id, makeBeanProxy((Class<T>)bean.getClass(), bean));
         }
 
         add(bean);
@@ -154,6 +154,57 @@ public class BeanContext {
 
     public boolean isInitialized() {
         return initialized;
+    }
+
+    /**
+     * For injecting whatever is available in tests. For production use init()
+     */
+    public void injectAll() {
+        for (Entry<Class, BeanWrapper> entry : new HashSet<>(proxiesByClass.entrySet())) {
+            if (entry.getValue().getBean() == null) {
+                continue;
+            }
+
+            inject(entry.getValue().getBean());
+        }
+
+        for (Entry<String, BeanWrapper> entry : new HashSet<>(proxiesById.entrySet())) {
+
+            if (entry.getValue().getBean() == null) {
+                continue;
+            }
+
+            inject(entry.getValue().getBean());
+        }
+
+        for (Entry<Class, BeanWrapper> entry : new HashSet<>(proxiesByClass.entrySet())) {
+            Object bean = entry.getValue().getBean();
+            if (bean == null) {
+                continue;
+            }
+
+            if (bean instanceof AfterInit &&
+                    !afterInitCalled.contains(bean)) {
+                ((AfterInit) bean).afterInit();
+                afterInitCalled.add(((AfterInit) bean));
+            }
+
+
+        }
+
+        for (Entry<String, BeanWrapper> entry : new HashSet<>(proxiesById.entrySet())) {
+            Object bean = entry.getValue().getBean();
+
+            if (bean == null) {
+                continue;
+            }
+
+            if (bean instanceof AfterInit &&
+                    !afterInitCalled.contains(bean)) {
+                ((AfterInit) bean).afterInit();
+                afterInitCalled.add(((AfterInit) bean));
+            }
+        }
     }
 
     public void init() {
@@ -238,7 +289,9 @@ public class BeanContext {
             BeanWrapper newWrapper = getOrMakeWrapper(f.getType());
 
             if (newWrapper.getProxy() == null) {
-                throw new IllegalStateException("Bean not available for field: " + f);
+                if (initialized) {
+                    throw new IllegalStateException("Bean not available for field: " + f);
+                }
             }
 
             try {
@@ -303,15 +356,17 @@ public class BeanContext {
         return bean;
     }
 
-    private <T> BeanWrapper makeBeanProxy(T obj) {
-        BeanWrapper wrapper = makeBeanProxy(obj.getClass());
-        wrapper.setBean(obj);
+    private <T> BeanWrapper makeBeanProxy(Class<T> clz, T bean) {
+        BeanWrapper wrapper = makeBeanProxy(clz);
+        wrapper.setBean(bean);
         return wrapper;
     }
 
     private <T> BeanWrapper makeBeanProxy(Class<T> clz) {
         AbstractBeanProxy<T> beanProxyHandler = makeBeanProxyHandler(clz);
         try {
+
+            clz = realClass(clz);
 
             return new BeanWrapper(beanProxyHandler, Enhancer.create(
                     clz,
