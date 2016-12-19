@@ -4,7 +4,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi</artifactId>
-    <version>1.4.25</version>
+    <version>1.4.26</version>
     <packaging>jar</packaging>
 
     <name>webi</name>
@@ -67,7 +67,7 @@
         <dependency>
             <groupId>com.vonhof</groupId>
             <artifactId>babelshark</artifactId>
-            <version>1.6.4</version>
+            <version>1.7.0</version>
         </dependency>
         <dependency>
             <groupId>javax.inject</groupId>

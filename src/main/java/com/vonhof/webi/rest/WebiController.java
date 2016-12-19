@@ -51,6 +51,10 @@ public class WebiController {
         for (Entry<String, Map<String, EnumMap<HttpMethod, MethodInfo>>> baseEntry : methods.entrySet()) {
             final String baseUrl = baseEntry.getKey();
             Object ctrl = urlMapper.getObjectByURL(baseUrl);
+            if (ctrl == null) {
+                throw new RuntimeException("Failed to determine controller for base url: " + baseUrl);
+            }
+
             ObjectNode ctrlNode = methodsNode.putObject(getTypeName(SharkType.get(ctrl.getClass())));
             ctrlNode.put("url", baseUrl);
             ObjectNode ctrlMethodsNode = ctrlNode.putObject("methods");
