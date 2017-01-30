@@ -327,7 +327,11 @@ public class BeanContext {
     }
 
     public <T> T injectOnly(T obj) {
-        T out = inject(obj);
+        T out = injectFields(obj);
+
+        if (out instanceof AfterInject) {
+            ((AfterInject)out).afterInject();
+        }
 
         if (out instanceof AfterInit) {
             ((AfterInit)out).afterInit();
