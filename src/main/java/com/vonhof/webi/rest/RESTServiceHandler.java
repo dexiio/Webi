@@ -33,6 +33,7 @@ import org.apache.commons.fileupload.FileItem;
  * @author Henrik Hofmeister <@vonhofdk>
  */
 public class RESTServiceHandler implements RequestHandler, AfterAdd {
+    public static final String DISABLE_METRICS = "DISABLE_METRICS";
     
     @Inject
     private Webi webi;
@@ -93,6 +94,11 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
 
     @Override
     public void handle(WebiContext ctxt) throws IOException, ServletException {
+
+        if (ctxt.getRequest().getAttribute(DISABLE_METRICS) == null &&
+                ("true".equalsIgnoreCase(ctxt.getHeader("X-Metrics-Enable")) || ctxt.getRequest().getParameterMap().containsKey("__trace"))) {
+            ctxt.setLoadMetricsEnabled(true);
+        }
         
         setResponseType(ctxt);
 
@@ -101,7 +107,7 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
         if (origin != null && !origin.isEmpty()) {
             if (okOrigins.contains(origin)) {
                 ctxt.setHeader("Access-Control-Allow-Origin", origin);
-                ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept, api-key");
+                ctxt.setHeader("Access-Control-Allow-Headers", "origin, content-type, accept, api-key, x-metrics-enable");
             }
         }
         
@@ -126,6 +132,11 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
             ctxt.setHeader("Content-type", ctxt.getResponseType());
             
             final Output out = new Output(ctxt.getOutputStream(),ctxt.getOutputType());
+
+            if (ctxt.isLoadMetricsEnabled()) {
+                ctxt.setHeader("X-Wrapped-Metric", "true");
+                output = new LoadMetricWrappedOutput(output, ctxt.getLoadMetricEntries());
+            }
             
             try {
                 bs.write(out,output);
@@ -459,6 +470,25 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
         context.add(UrlMapper.class, urlMapper);
         for(Object controller : urlMapper.getControllers()) {
             context.add(controller);
+        }
+    }
+
+    public static class LoadMetricWrappedOutput {
+        private final Object output;
+
+        private final List<WebiContext.RequestLoadMetricEntry> metrics;
+
+        public LoadMetricWrappedOutput(Object output, List<WebiContext.RequestLoadMetricEntry> loadMetricEntries) {
+            this.output = output;
+            this.metrics = loadMetricEntries;
+        }
+
+        public Object getOutput() {
+            return output;
+        }
+
+        public List<WebiContext.RequestLoadMetricEntry> getMetrics() {
+            return metrics;
         }
     }
 }

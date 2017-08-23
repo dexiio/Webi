@@ -450,11 +450,10 @@ public final class Webi {
 
                 wr = new WebiContext(basePath, path,
                         baseRequest,
-                        request, response,
-                        sessionResolver);
+                        request, response);
 
                 beanContext.add(wr);
-                beanContext.add(wr.getSession());
+                beanContext.add(wr.resolve(sessionResolver));
 
                 for (Filter filter : filters.getAll(path)) {
                     if (!filter.apply(wr)) {

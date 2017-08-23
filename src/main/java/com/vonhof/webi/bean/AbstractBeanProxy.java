@@ -7,6 +7,8 @@ import net.sf.cglib.proxy.MethodProxy;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 
 abstract class AbstractBeanProxy<T> implements MethodInterceptor, Callback {
@@ -27,8 +29,10 @@ abstract class AbstractBeanProxy<T> implements MethodInterceptor, Callback {
             return null;
         }
 
+        Map<String, Object> scope = new HashMap<>();
+
         for (BeanInvocationInterceptor interceptor : interceptors) {
-            interceptor.before(thisBean, method, args, methodProxy);
+            interceptor.before(thisBean, method, args, methodProxy, scope);
         }
 
         long startTime = System.currentTimeMillis();
@@ -48,7 +52,7 @@ abstract class AbstractBeanProxy<T> implements MethodInterceptor, Callback {
         } finally {
             long timeTaken = System.currentTimeMillis() - startTime;
             for (BeanInvocationInterceptor interceptor : interceptors) {
-                interceptor.after(thisBean, method, args, methodProxy, result, thrownException, timeTaken);
+                interceptor.after(thisBean, method, args, methodProxy, result, thrownException, timeTaken, scope);
             }
         }
     }

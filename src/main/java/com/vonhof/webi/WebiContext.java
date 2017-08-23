@@ -1,13 +1,14 @@
 package com.vonhof.webi;
 
+import com.vonhof.babelshark.node.SharkNode;
 import com.vonhof.webi.bean.BeanScope;
 import com.vonhof.webi.session.SessionHandler;
 import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.Callable;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.fileupload.FileUploadException;
@@ -31,9 +32,15 @@ public class WebiContext {
     private final HttpServletResponse response;
     private final HttpMethod httpMethod;
     private final ParmMap parmMap;
-    private final WebiSession session;
+    private WebiSession session;
     
     private final List<DiskFileItem> uploads;
+    private final List<RequestLoadMetricEntry> loadMetricEntries = new ArrayList<>();
+    private final Stack<RequestLoadMetricEntry> callStack = new Stack<>();
+
+
+    private boolean loadMetricsEnabled = false;
+
     private String responseType = "text/plain";
     private String outputType = null;
 
@@ -50,7 +57,7 @@ public class WebiContext {
         uploads = null;
     }
 
-    protected WebiContext(String base,String path, Request jettyRequest, HttpServletRequest request, HttpServletResponse response,SessionHandler resolver) {
+    protected WebiContext(String base,String path, Request jettyRequest, HttpServletRequest request, HttpServletResponse response) {
         this.base = base;
         this.path = path;
         this.jettyRequest = jettyRequest;
@@ -59,13 +66,6 @@ public class WebiContext {
         httpMethod = HttpMethod.valueOf(request.getMethod());
         parmMap = new ParmMap(request.getParameterMap());
         
-        WebiSession s = null;
-        if (resolver != null) {
-            s = resolver.handle(this);
-        }
-        if (s == null)
-            s = new WebiSession();
-        this.session = s;
         if (isMultiPart()) {
             List<DiskFileItem> tmp = null;
             try {
@@ -299,8 +299,109 @@ public class WebiContext {
         response.sendError(i, msg);
     }
 
-    
-    
+    public RequestLoadMetricEntry startCall(String description, SharkNode details) {
+        RequestLoadMetricEntry out = new RequestLoadMetricEntry(description, System.currentTimeMillis());
+        out.setDetails(details);
+
+        if (!callStack.isEmpty()) {
+            out.setParentId(callStack.peek().getId());
+        }
+
+        callStack.push(out);
+
+        return out;
+    }
+
+    public void endCall(RequestLoadMetricEntry entry) {
+        entry.endCall();
+        loadMetricEntries.add(entry);
+        callStack.remove(entry);
+    }
+
+    public void addTiming(String description, long timeTaken, SharkNode details) {
+        if (!loadMetricsEnabled) {
+            return;
+        }
+
+        RequestLoadMetricEntry entry = new RequestLoadMetricEntry(description, timeTaken, details);
+
+        if (!callStack.isEmpty()) {
+            entry.setParentId(callStack.peek().getId());
+        }
+
+        loadMetricEntries.add(entry);
+    }
+
+    public void addTiming(String description, Runnable runnable) {
+        addTiming(description, runnable, null);
+    }
+
+    public void addTiming(String description, Runnable runnable, SharkNode details) {
+        long timeStart = System.currentTimeMillis();
+        try {
+            runnable.run();
+        } finally {
+            long timeTaken = System.currentTimeMillis() - timeStart;
+            addTiming(description, timeTaken, details);
+        }
+    }
+
+    public <T> T addTiming(String description, Callable<T> runnable) throws Exception {
+        return addTiming(description, runnable, null);
+    }
+
+    public <T> T addTiming(String description, Callable<T> runnable, SharkNode details) throws Exception {
+        long timeStart = System.currentTimeMillis();
+        try {
+            return runnable.call();
+        } finally {
+            long timeTaken = System.currentTimeMillis() - timeStart;
+            addTiming(description, timeTaken, details);
+        }
+    }
+
+    public <T> T addTimingNoException(String description, Callable<T> runnable) {
+        return addTimingNoException(description, runnable, null);
+    }
+
+    public <T> T addTimingNoException(String description, Callable<T> runnable, SharkNode details) {
+        long timeStart = System.currentTimeMillis();
+        try {
+            return runnable.call();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            long timeTaken = System.currentTimeMillis() - timeStart;
+            addTiming(description, timeTaken, details);
+        }
+    }
+
+    public boolean isLoadMetricsEnabled() {
+        return loadMetricsEnabled;
+    }
+
+    public void setLoadMetricsEnabled(boolean loadMetricsEnabled) {
+        this.loadMetricsEnabled = loadMetricsEnabled;
+    }
+
+    public List<RequestLoadMetricEntry> getLoadMetricEntries() {
+        return loadMetricEntries;
+    }
+
+    public WebiSession resolve(SessionHandler resolver) {
+        WebiSession s = null;
+        if (resolver != null) {
+            s = resolver.handle(this);
+        }
+        if (s == null)
+            s = new WebiSession();
+        this.session = s;
+
+        return s;
+    }
+
     public static final class ParmMap {
         private final Map<String,String[]> inner;
 
@@ -324,5 +425,87 @@ public class WebiContext {
             return inner.containsKey(name);
         }
     
+    }
+
+    public static class RequestLoadMetricEntry {
+        private String description;
+
+        private SharkNode details;
+
+        private long timeTaken;
+
+        private Date timeStarted;
+
+        private UUID parentId;
+
+        private UUID id = UUID.randomUUID();
+
+
+        public RequestLoadMetricEntry() {
+        }
+
+        public RequestLoadMetricEntry(String description, long timeTaken, SharkNode details) {
+            this.description = description;
+            this.timeTaken = timeTaken;
+            this.timeStarted = new Date(System.currentTimeMillis() - timeTaken);
+            this.details = details;
+        }
+
+        public RequestLoadMetricEntry(String description, long startTime) {
+            this.description = description;
+            this.timeStarted = new Date(startTime);
+        }
+
+        public UUID getParentId() {
+            return parentId;
+        }
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setParentId(UUID parentId) {
+            this.parentId = parentId;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public String getDescription() {
+            return description;
+        }
+
+        public void setDescription(String description) {
+            this.description = description;
+        }
+
+        public SharkNode getDetails() {
+            return details;
+        }
+
+        public void setDetails(SharkNode details) {
+            this.details = details;
+        }
+
+        public long getTimeTaken() {
+            return timeTaken;
+        }
+
+        public void setTimeTaken(long timeTaken) {
+            this.timeTaken = timeTaken;
+        }
+
+        public Date getTimeStarted() {
+            return timeStarted;
+        }
+
+        public void setTimeStarted(Date timeStarted) {
+            this.timeStarted = timeStarted;
+        }
+
+        public void endCall() {
+            this.timeTaken = System.currentTimeMillis() - timeStarted.getTime();
+        }
     }
 }
