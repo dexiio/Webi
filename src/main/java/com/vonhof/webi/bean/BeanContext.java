@@ -399,6 +399,9 @@ public class BeanContext {
 
         ThreadLocalBeanProxy out = new ThreadLocalBeanProxy<>(getInterceptorsFor(clz));
         threadLocalBeanProxies.add(out);
+        if (annotation.ignored()) {
+            out.setDefaultClass(clz);
+        }
         return out;
     }
 

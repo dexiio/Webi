@@ -22,7 +22,7 @@ import org.eclipse.jetty.server.Request;
  * Webi context wraps request, response and paths.
  * @author Henrik Hofmeister <@vonhofdk>
  */
-@BeanScope(BeanScope.Type.LOCAL)
+@BeanScope(value = BeanScope.Type.LOCAL, ignored = true)
 public class WebiContext {
     private static final ServletFileUpload fileUpload = new ServletFileUpload(new DiskFileItemFactory());
     private final String path;

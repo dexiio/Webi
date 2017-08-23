@@ -10,6 +10,8 @@ import java.lang.annotation.*;
 public @interface BeanScope {
     Type value() default Type.GLOBAL;
 
+    boolean ignored() default false;
+
     enum Type {
         GLOBAL,
         LOCAL
