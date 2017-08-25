@@ -118,6 +118,11 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
             return;
         }
 
+        WebiContext.RequestLoadMetricEntry requestLoadMetrics = null;
+        if (ctxt.isLoadMetricsEnabled()) {
+            requestLoadMetrics = ctxt.startCall(String.format("REST: %s %s", ctxt.getMethod(), ctxt.getRequest().getRequestURI()), null);
+        }
+
         try {
             //Invoke REST method
             output = invokeAction(ctxt);
@@ -134,6 +139,10 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
             final Output out = new Output(ctxt.getOutputStream(),ctxt.getOutputType());
 
             if (ctxt.isLoadMetricsEnabled()) {
+                if (requestLoadMetrics != null) {
+                    ctxt.endCall(requestLoadMetrics);
+                }
+
                 ctxt.setHeader("X-Wrapped-Metric", "true");
                 output = new LoadMetricWrappedOutput(output, ctxt.getLoadMetricEntries());
             }
