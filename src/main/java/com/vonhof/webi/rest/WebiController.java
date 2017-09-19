@@ -13,6 +13,7 @@ import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
 import com.vonhof.webi.HttpMethod;
 import com.vonhof.webi.WebiContext;
 import com.vonhof.webi.annotation.Body;
+import com.vonhof.webi.annotation.InternalMethod;
 import com.vonhof.webi.annotation.Parm;
 import com.vonhof.webi.annotation.Path;
 import com.vonhof.webi.session.WebiSession;
@@ -187,6 +188,7 @@ public class WebiController {
     private void writeMethod(ObjectNode ctrlObject, String methodUrl, String baseUrl,
             HttpMethod httpMethod, MethodInfo method, List<SharkType> types) {
         String methodName = method.getName();
+        boolean internal = method.hasAnnotation(InternalMethod.class);
 
         ArrayNode methodsObject = (ArrayNode) ctrlObject.get(methodName);
         if (methodsObject == null) {
@@ -197,6 +199,10 @@ public class WebiController {
         methodObject.put("name", methodName);
         methodObject.put("method", httpMethod);
         methodObject.put("url", String.format("%s/%s", baseUrl, methodUrl));
+
+        if (internal) {
+            methodObject.put("internal", true);
+        }
 
         SharkType returnType = SharkType.get(method.getReturnClassInfo());
         if (!returnType.isA(Void.TYPE)) {
