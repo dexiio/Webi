@@ -21,6 +21,7 @@ import com.vonhof.webi.session.WebiSession;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.Map.Entry;
@@ -417,7 +418,7 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
         if (ClassInfo.isString(type))
             return "";
         if (type.isArray())
-            return new Object[0];
+            return Array.newInstance(type.getComponentType(), 0);
         if (ClassInfo.inherits(type, Set.class))
             return Collections.EMPTY_SET;
         if (ClassInfo.inherits(type, Map.class))
