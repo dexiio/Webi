@@ -4,7 +4,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi-client</artifactId>
-    <version>1.5.11</version>
+    <version>1.5.12</version>
     <packaging>jar</packaging>
 
     <name>webi-client</name>
@@ -16,10 +16,15 @@
 
     <distributionManagement>
         <repository>
-            <id>nexus</id>
+            <id>central</id>
             <name>Releases</name>
-            <url>${nexus.url}</url>
+            <url>https://dexi.jfrog.io/dexi/libs-release</url>
         </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Snapshots</name>
+            <url>https://dexi.jfrog.io/dexi/libs-snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <build>
@@ -46,7 +51,7 @@
         <dependency>
             <groupId>com.vonhof</groupId>
             <artifactId>babelshark</artifactId>
-            <version>1.8.5</version>
+            <version>1.8.6</version>
         </dependency>
     </dependencies>
 </project>
