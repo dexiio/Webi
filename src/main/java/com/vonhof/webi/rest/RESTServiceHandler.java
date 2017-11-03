@@ -6,6 +6,7 @@ import com.vonhof.babelshark.exception.MappingException;
 import com.vonhof.babelshark.node.ObjectNode;
 import com.vonhof.babelshark.node.SharkNode;
 import com.vonhof.babelshark.node.SharkNode.NodeType;
+import com.vonhof.babelshark.node.ValueNode;
 import com.vonhof.babelshark.reflect.ClassInfo;
 import com.vonhof.babelshark.reflect.MethodInfo;
 import com.vonhof.babelshark.reflect.MethodInfo.Parameter;
@@ -291,7 +292,7 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
             try {
                 if (bodyParms.size() == 1) {
                     Entry<Integer, Parameter> entry = bodyParms.entrySet().iterator().next();
-                    out[entry.getKey()] = bs.read(body, entry.getValue().getClassInfo());
+                    out[entry.getKey()] = body != null ? bs.read(body, entry.getValue().getClassInfo()) : null;
                 } else if (body.is(NodeType.MAP)) {
                     ObjectNode obj = (ObjectNode) body;
                     for (Entry<Integer, Parameter> entry : bodyParms.entrySet()) {
@@ -461,6 +462,10 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
      * @throws Exception 
      */
     private SharkNode readBody(WebiContext req) throws Exception {
+        if (req.getRequestType() == null) {
+            //No content type
+            return null;
+        }
         return bs.read(new Input(req.getInputStream(), req.getRequestType()), SharkNode.class);
     }
 

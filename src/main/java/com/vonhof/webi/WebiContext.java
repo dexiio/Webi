@@ -150,6 +150,10 @@ public class WebiContext {
      * @return 
      */
     public String getRequestType() {
+        if (request.getContentType() == null) {
+            return null;
+        }
+
         return request.getContentType().replaceAll("(?uis); *charset=.*$","");
     }
 
