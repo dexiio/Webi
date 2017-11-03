@@ -4,7 +4,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi-client</artifactId>
-    <version>1.5.12</version>
+    <version>1.6.0</version>
     <packaging>jar</packaging>
 
     <name>webi-client</name>
@@ -51,7 +51,7 @@
         <dependency>
             <groupId>com.vonhof</groupId>
             <artifactId>babelshark</artifactId>
-            <version>1.8.6</version>
+            <version>1.8.7</version>
         </dependency>
     </dependencies>
 </project>
