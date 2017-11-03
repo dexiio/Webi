@@ -16,10 +16,15 @@
 
     <distributionManagement>
         <repository>
-            <id>nexus</id>
+            <id>central</id>
             <name>Releases</name>
-            <url>${nexus.url}</url>
+            <url>https://dexi.jfrog.io/dexi/libs-release</url>
         </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Snapshots</name>
+            <url>https://dexi.jfrog.io/dexi/libs-snapshots</url>
+        </snapshotRepository>
     </distributionManagement>
 
     <build>
