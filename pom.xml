@@ -15,14 +15,6 @@
         <metrics.version>3.1.2</metrics.version>
     </properties>
 
-    <distributionManagement>
-        <repository>
-            <id>nexus</id>
-            <name>Releases</name>
-            <url>${nexus.url}</url>
-        </repository>
-    </distributionManagement>
-
     <build>
         <plugins>
             <plugin>
