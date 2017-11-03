@@ -15,6 +15,19 @@
         <metrics.version>3.1.2</metrics.version>
     </properties>
 
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>Releases</name>
+            <url>https://dexi.jfrog.io/dexi/libs-release</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Snapshots</name>
+            <url>https://dexi.jfrog.io/dexi/libs-snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
+
     <build>
         <plugins>
             <plugin>
