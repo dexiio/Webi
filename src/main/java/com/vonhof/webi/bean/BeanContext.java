@@ -262,6 +262,10 @@ public class BeanContext {
     }
 
     private <T> T injectFields(T obj) {
+        return injectFields(obj, false);
+    }
+
+    private <T> T injectFields(T obj, boolean requireAll) {
         if (Enhancer.isEnhanced(obj.getClass())) {
             throw new IllegalArgumentException("Should only inject on actual beans - not proxies: " + obj.getClass());
         }
@@ -289,7 +293,7 @@ public class BeanContext {
             BeanWrapper newWrapper = getOrMakeWrapper(f.getType());
 
             if (newWrapper.getProxy() == null) {
-                if (initialized) {
+                if (initialized || requireAll) {
                     throw new IllegalStateException("Bean not available for field: " + f);
                 }
             }
@@ -327,7 +331,11 @@ public class BeanContext {
     }
 
     public <T> T injectOnly(T obj) {
-        T out = injectFields(obj);
+        return injectOnly(obj, false);
+    }
+
+    public <T> T injectOnly(T obj, boolean requireAll) {
+        T out = injectFields(obj, requireAll);
 
         if (out instanceof AfterInject) {
             ((AfterInject)out).afterInject();
