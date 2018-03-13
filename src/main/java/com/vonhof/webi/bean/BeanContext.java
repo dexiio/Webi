@@ -378,7 +378,7 @@ public class BeanContext {
         AbstractBeanProxy<T> beanProxyHandler = makeBeanProxyHandler(clz);
 
         if (clz.isInterface()) {
-            log.warn("Can not make proxy for interface: {}", clz);
+            log.trace("Can not make proxy for interface: {}", clz);
             return new BeanWrapper(beanProxyHandler, null);
         }
         try {
@@ -391,7 +391,7 @@ public class BeanContext {
                     beanProxyHandler
             ));
         } catch (IllegalArgumentException e) {
-            log.warn("Can not make proxy for class: {} - Error: {}", clz, e.getMessage());
+            log.trace("Can not make proxy for class: {} - Error: {}", clz, e.getMessage());
 
             return new BeanWrapper(beanProxyHandler, null);
         }
