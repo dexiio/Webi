@@ -51,7 +51,7 @@
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>webi</artifactId>
-            <version>${project.version}</version>
+            <version>1.6.3</version>
         </dependency>
         <dependency>
             <groupId>commons-io</groupId>
