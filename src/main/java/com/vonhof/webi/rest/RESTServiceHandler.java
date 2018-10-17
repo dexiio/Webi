@@ -38,16 +38,15 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
     public static final String DISABLE_METRICS = "DISABLE_METRICS";
     
     @Inject
-    private Webi webi;
+    protected Webi webi;
     
     @Inject
-    private BabelSharkInstance bs;
+    protected BabelSharkInstance bs;
 
-    private final UrlMapper urlMapper;
-    private RESTListener listener;
-    private ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
-    private List<String> okOrigins = new ArrayList<String>();
-
+    protected final UrlMapper urlMapper;
+    protected RESTListener listener;
+    protected ExceptionHandler exceptionHandler = new DefaultExceptionHandler();
+    protected List<String> okOrigins = new ArrayList<String>();
 
     public RESTServiceHandler(UrlMapper urlMapper) {
         this.urlMapper = urlMapper;
