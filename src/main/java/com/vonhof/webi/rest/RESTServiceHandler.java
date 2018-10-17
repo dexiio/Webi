@@ -461,7 +461,7 @@ public class RESTServiceHandler implements RequestHandler, AfterAdd {
      * @return
      * @throws Exception 
      */
-    private SharkNode readBody(WebiContext req) throws Exception {
+    protected SharkNode readBody(WebiContext req) throws Exception {
         if (req.getRequestType() == null) {
             //No content type
             return null;
