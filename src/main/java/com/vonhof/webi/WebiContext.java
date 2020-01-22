@@ -17,6 +17,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.logging.log4j.LogManager;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.util.MultiMap;
 
 /**
  * Webi context wraps request, response and paths.
@@ -64,7 +65,14 @@ public class WebiContext {
         this.request = request;
         this.response = response;
         httpMethod = HttpMethod.valueOf(request.getMethod());
-        parmMap = new ParmMap(request.getParameterMap());
+
+        MultiMap<String> queryParams = new MultiMap<>();
+        jettyRequest.getUri().decodeQueryTo(queryParams);
+        Map<String, String[]> parms = new HashMap<>();
+        for(Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
+            parms.put(entry.getKey(), entry.getValue().toArray(new String[entry.getValue().size()]));
+        }
+        parmMap = new ParmMap(parms);
         
         if (isMultiPart()) {
             List<DiskFileItem> tmp = null;
