@@ -4,7 +4,7 @@
 
     <groupId>com.vonhof</groupId>
     <artifactId>webi-websockets</artifactId>
-    <version>1.6.7</version>
+    <version>1.6.8</version>
     <packaging>jar</packaging>
 
     <name>webi-websockets</name>
