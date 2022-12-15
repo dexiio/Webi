@@ -101,7 +101,11 @@ public final class Webi {
     private RequestLogHandler requestLogHandler = new RequestLogHandler();
 
     public Webi(int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests) {
-        this(null, port, maxThreads, acceptQueueSize, maxConcurrentRequests);
+        this(null, port, maxThreads, acceptQueueSize, maxConcurrentRequests,30000);
+    }
+
+    public Webi(int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests, int idleTimeout) {
+        this(null, port, maxThreads, acceptQueueSize, maxConcurrentRequests,idleTimeout);
     }
 
     /**
@@ -109,7 +113,7 @@ public final class Webi {
      *
      * @param port
      */
-    public Webi(MetricRegistry registry, int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests) {
+    public Webi(MetricRegistry registry, int port, int maxThreads, int acceptQueueSize, int maxConcurrentRequests, int idleTimeout) {
         this.maxRequests = maxConcurrentRequests;
         this.registry = registry;
 
@@ -127,6 +131,7 @@ public final class Webi {
         connector.setAcceptQueueSize(acceptQueueSize);
         connector.setPort(port);
         connector.setReuseAddress(true);
+        connector.setIdleTimeout(idleTimeout);
 
         if (registry != null) {
             Collection<ConnectionFactory> connectionFactories = new ArrayList<>();
