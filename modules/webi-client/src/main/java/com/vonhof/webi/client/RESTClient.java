@@ -173,6 +173,18 @@ public class RESTClient {
         public void post() throws IOException {
             post(null);
         }
+
+        public <T> T patch(Object body,Class<T> responseType) throws IOException {
+            return send(this, "PATCH", body, responseType);
+        }
+
+        public void patch(Object body) throws IOException {
+            post(body, null);
+        }
+
+        public void patch() throws IOException {
+            post(null);
+        }
         
         
     }
